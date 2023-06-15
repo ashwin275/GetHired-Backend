@@ -8,7 +8,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
          model = Account
          
-         fields = ["id","first_name", "last_name", "email", "phone_number","password","is_seeker","is_recruiter","is_active"]
+         fields = ["id","first_name", "last_name", "email", "mobile","password","is_seeker","is_employer",]
 
          extra_kwargs = {
             'password':{'write_only':True},
@@ -17,8 +17,17 @@ class RegisterSerializer(serializers.ModelSerializer):
                 'allow_blank':False,
                 'validators':[
                     validators.UniqueValidator(
-                        Account.objects.all(),'A user with this email already exists'
+                        Account.objects.all(),'A user with this email already exists please try with other one'
                     )
                 ]
             }
         }
+         
+    def create(self, validated_data):
+        password = validated_data.pop('password',None)
+        instance = self.Meta.model(**validated_data)
+        if password is not None:
+            instance.set_password(password)
+        instance.save()
+
+        return instance

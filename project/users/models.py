@@ -55,6 +55,7 @@ class Account(AbstractBaseUser):
     is_active = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_seeker = models.BooleanField(default=False)
+    email_token = models.CharField(max_length=250,null=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name','mobile',]
