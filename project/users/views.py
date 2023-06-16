@@ -1,16 +1,37 @@
 from rest_framework.views import APIView
-from .serializers import RegisterSerializer
+from .models import Account
+from .serializers import RegisterSerializer,UserInfoSerializer
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
 from .sendmails import send_email_verify
 import uuid
 from django.contrib.auth import get_user_model
 from .models import Account
+from django.views.decorators.csrf import csrf_exempt
+
+
+
+# from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
+# from rest_framework_simplejwt.views import TokenObtainPairView            # type: ignore
+# class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+#     @classmethod
+#     def get_token(cls, user):
+#         token = super().get_token(user)
+
+#         # Add custom claims
+#         token['username'] = user.username 
+#         # ...
+
+#         return token
+    
+# class MyTokenObtainPairView(TokenObtainPairView):
+#     serializer_class = MyTokenObtainPairSerializer
 
 
 class RegisterView(APIView):
     def post(self,request):
-        print(request.data,'111111111111111111111111')
+      
         if not request.data:
             return Response({'error': 'No data provided.'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -21,7 +42,7 @@ class RegisterView(APIView):
         user_profile = serializer.save()
         user_profile.email_token = token
         user_profile.save()
-        send_email_verify(serializer.data['email'],token)
+        # send_email_verify(serializer.data['email'],token)
         response = Response()
         response.data = {
          'message': f"Account successfully created for {serializer.data['first_name']}",
@@ -34,17 +55,50 @@ class RegisterView(APIView):
         # User = get_user_model()
         try:
             user = Account.objects.get(email_token=token)
-            if user.is_verified:
-                return Response({
+            if user.is_verified == True:
+                verify_response = {
                     'message':'Account already verified'
-                   })
-            user.is_verified = True
-            user.save()
-            print(user,'........................................')
-            response_data = {
-            'message': 'Email verified successfully.',
-            }
-            return Response(response_data)
+                }
+                return Response( verify_response)
+            else:
+                user.is_verified = True
+                user.is_active = True
+                user.save()
+                print(user,'........................................')
+                response_data = {
+                'message': 'Email verified successfully.',
+                'is_seeker':user.is_seeker
+                }
+                return Response(response_data)
         except:
              return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
+
+
+class LoginView(APIView):
+    @csrf_exempt
+    def post(self,request):
+        email = request.data['email']
+        password = request.data['password']
+
+
+        try:
+            user = Account.objects.get(email = email)
+        except Account.DoesNotExist:
+            raise AuthenticationFailed("User not found")
+        
+        if not user.check_password(password):
+            raise AuthenticationFailed('incorect password')
+        
+        if not user.is_active:
+            raise AuthenticationFailed('you are blocked by admin')   
+        
+        Serialized_data = UserInfoSerializer(user)
+        response = Response()
+
+        response.data = {
+            'userInfo':Serialized_data.data
+        }
+
+
+        return response

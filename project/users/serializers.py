@@ -31,3 +31,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
+    
+
+
+
+class UserInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+
+        fields = ['id','first_name','email','is_superuser','is_employer','is_seeker']
