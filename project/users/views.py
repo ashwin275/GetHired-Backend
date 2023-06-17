@@ -8,7 +8,7 @@ from .sendmails import send_email_verify
 import uuid
 from django.contrib.auth import get_user_model
 from .models import Account
-from django.views.decorators.csrf import csrf_exempt
+from .token import get_tokens
 
 
 
@@ -41,6 +41,7 @@ class RegisterView(APIView):
 
         user_profile = serializer.save()
         user_profile.email_token = token
+        user_profile.is_active = True
         user_profile.save()
         # send_email_verify(serializer.data['email'],token)
         response = Response()
@@ -76,29 +77,50 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
-    @csrf_exempt
-    def post(self,request):
-        email = request.data['email']
-        password = request.data['password']
+ 
+   def post(self, request):
+    email = request.data['email']
+    password = request.data['password']
+    role = request.data['role']
+
+    try:
+        user = Account.objects.get(email=email)
+    except Account.DoesNotExist:
+        raise AuthenticationFailed("User not found")
+
+    if not user.check_password(password):
+        raise AuthenticationFailed('Incorrect password')
+
+    if not user.is_active:
+        raise AuthenticationFailed('You are blocked by admin')
+
+    if not user.is_verified:
+        raise AuthenticationFailed('Your account is not verified')
+
+    # match role:
+    #     case 'is_seeker':
+    #         if not user.is_seeker:
+    #             raise AuthenticationFailed('You are not a user')
+    #     case 'is_employer':
+    #         if not user.is_employer:
+    #             raise AuthenticationFailed('You are not an employer')
+    #     case 'is_superuser':
+    #         if not user.is_superuser:
+    #             raise AuthenticationFailed('You are not an admin')
+    #     case _:
+    #         raise AuthenticationFailed('Invalid role')
+
+    Serialized_data = UserInfoSerializer(user)
+    token = get_tokens(user)
+    response = Response()
+    response.set_cookie(key='jwt',value=token,httponly=True)
+    response.data = {
+        'userInfo': Serialized_data.data,
+        'token': token,
+        'message':'successfully loged',
+         'status':200
+    }
 
 
-        try:
-            user = Account.objects.get(email = email)
-        except Account.DoesNotExist:
-            raise AuthenticationFailed("User not found")
-        
-        if not user.check_password(password):
-            raise AuthenticationFailed('incorect password')
-        
-        if not user.is_active:
-            raise AuthenticationFailed('you are blocked by admin')   
-        
-        Serialized_data = UserInfoSerializer(user)
-        response = Response()
+    return response
 
-        response.data = {
-            'userInfo':Serialized_data.data
-        }
-
-
-        return response
