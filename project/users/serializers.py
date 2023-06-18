@@ -40,3 +40,8 @@ class UserInfoSerializer(serializers.ModelSerializer):
         model = Account
 
         fields = ['id','first_name','email','is_superuser','is_employer','is_seeker']
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        exclude = ('password','email_token')

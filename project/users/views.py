@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from .models import Account
-from .serializers import RegisterSerializer,UserInfoSerializer
+from .serializers import RegisterSerializer,UserInfoSerializer,UserSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
@@ -9,7 +9,10 @@ import uuid
 from django.contrib.auth import get_user_model
 from .models import Account
 from .token import get_tokens
-
+from rest_framework_simplejwt.tokens import AccessToken # type: ignore
+# import jwt , datetime
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication  # type: ignore
 
 
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
@@ -31,6 +34,7 @@ from .token import get_tokens
 
 class RegisterView(APIView):
     def post(self,request):
+        print(request.data,'dataaaaaaaaaaaaaaaaaaaaaaa')
       
         if not request.data:
             return Response({'error': 'No data provided.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -43,7 +47,7 @@ class RegisterView(APIView):
         user_profile.email_token = token
         user_profile.is_active = True
         user_profile.save()
-        # send_email_verify(serializer.data['email'],token)
+        send_email_verify(serializer.data['email'],token)
         response = Response()
         response.data = {
          'message': f"Account successfully created for {serializer.data['first_name']}",
@@ -58,7 +62,8 @@ class RegisterView(APIView):
             user = Account.objects.get(email_token=token)
             if user.is_verified == True:
                 verify_response = {
-                    'message':'Account already verified'
+                    'message':'Account already verified',
+                     'is_seeker':user.is_seeker
                 }
                 return Response( verify_response)
             else:
@@ -66,6 +71,7 @@ class RegisterView(APIView):
                 user.is_active = True
                 user.save()
                 print(user,'........................................')
+                print(user.is_seeker,'deeeeeeeeeeeeeeee')
                 response_data = {
                 'message': 'Email verified successfully.',
                 'is_seeker':user.is_seeker
@@ -77,7 +83,6 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
- 
    def post(self, request):
     email = request.data['email']
     password = request.data['password']
@@ -120,7 +125,54 @@ class LoginView(APIView):
         'message':'successfully loged',
          'status':200
     }
-
-
     return response
+   
+    
+   def get(self,request):
+        user_id = request.user
+        print(user_id)
+        # user = Account.objects.get(id=user_id)
+        return Response({'user_id': user_id})
 
+   
+
+#    def get(self, request):
+#         token = request.headers.get('Authorization')
+#         if token.startswith('Bearer '):
+#             token = token[7:]
+
+#         if not token:
+#             raise AuthenticationFailed('Unauthenticated!1212121212')
+#         try:
+           
+#             # token = token.split(' ')[1]
+#             # payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+
+#             # user = Account.objects.get(id=payload['user_id'])
+
+#             acces_token = AccessToken(token)
+#             user_id = acces_token['user_id']
+#             user = Account.objects.get(id=user_id)
+#             print(user,'user')
+#             serializer = UserSerializer(user)
+#             return Response(serializer.data)
+
+#         except jwt.ExpiredSignatureError:
+#             raise AuthenticationFailed('Unauthenticateddddd!')
+
+#         except (jwt.DecodeError, Account.DoesNotExist):
+#             raise AuthenticationFailed('Unauthenticated!')
+
+
+# class UsersList(APIView):
+
+class UserDetailsView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.auth:
+            raise AuthenticationFailed('Unauthenticated!')
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data)

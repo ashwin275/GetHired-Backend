@@ -2,7 +2,7 @@ from rest_framework_simplejwt.tokens import RefreshToken #type:ignore
 
 def get_tokens(user):
     refresh = RefreshToken.for_user(user)
-    refresh['name'] = user.first_name
+    refresh['id'] = user.id
 
     return {
         'refresh': str(refresh),
