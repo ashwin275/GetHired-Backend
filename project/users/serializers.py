@@ -45,3 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         exclude = ('password','email_token')
+
+
+
+

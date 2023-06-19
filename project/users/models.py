@@ -14,6 +14,7 @@ class MyAccountManager(BaseUserManager):
         )
 
         user.is_verified = False
+        user.is_staff = False
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -51,6 +52,7 @@ class Account(AbstractBaseUser):
     is_seeker = models.BooleanField(default=False)
     email_token = models.CharField(max_length=250, null=True)
     is_staff = True
+    
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'mobile']

@@ -10,10 +10,11 @@ from django.contrib.auth import get_user_model
 from .models import Account
 from .token import get_tokens
 from rest_framework_simplejwt.tokens import AccessToken # type: ignore
+from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
 # import jwt , datetime
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication  # type: ignore
-
+from rest_framework_simplejwt.tokens import OutstandingToken, BlacklistedToken  # type: ignore
 
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
 # from rest_framework_simplejwt.views import TokenObtainPairView            # type: ignore
@@ -176,3 +177,22 @@ class UserDetailsView(APIView):
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
+    
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        token = request.META.get('HTTP_AUTHORIZATION', '').split(' ')[1]
+
+        try:
+            token = RefreshToken(token)
+            token.blacklist()
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
+        return Response({'detail': 'Logout successful'})
+
+
+
+    
