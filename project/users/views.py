@@ -56,7 +56,7 @@ class RegisterView(APIView):
          'Userinfo':serializer.data
               }
         return response
-    
+       
     def get(self,request,token):
         # User = get_user_model()
         try:
@@ -98,23 +98,23 @@ class LoginView(APIView):
         raise AuthenticationFailed('Incorrect password')
 
     if not user.is_active:
-        raise AuthenticationFailed('You are blocked by admin')
+        raise AuthenticationFailed('Your account is blocked')
 
     if not user.is_verified:
         raise AuthenticationFailed('Your account is not verified')
 
-    # match role:
-    #     case 'is_seeker':
-    #         if not user.is_seeker:
-    #             raise AuthenticationFailed('You are not a user')
-    #     case 'is_employer':
-    #         if not user.is_employer:
-    #             raise AuthenticationFailed('You are not an employer')
-    #     case 'is_superuser':
-    #         if not user.is_superuser:
-    #             raise AuthenticationFailed('You are not an admin')
-    #     case _:
-    #         raise AuthenticationFailed('Invalid role')
+    match role:
+        case 'is_seeker':
+            if not user.is_seeker:
+                raise AuthenticationFailed('You are not an user')
+        case 'is_employer':
+            if not user.is_employer:
+                raise AuthenticationFailed('You are not an employer')
+        case 'is_superuser':
+            if not user.is_superuser:
+                raise AuthenticationFailed('You are not an admin')
+        case _:
+            raise AuthenticationFailed('Invalid role')
 
     Serialized_data = UserInfoSerializer(user)
     token = get_tokens(user)

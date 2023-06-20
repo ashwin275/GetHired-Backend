@@ -9,7 +9,18 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound
 # Create your views here.
 
-
+class AdminHomeview(APIView):
+        
+     def get(self,request):
+         user = request.user
+         print(user,'ooooooooooooooooooooo')
+         if not user.is_superuser:
+             return Response({'detail':'You are not an admin'},status=status.HTTP_403_FORBIDDEN)
+         
+         serialized_data = UserInfoSerializer(user)
+         return Response(serialized_data.data)
+    
+    
 class AdminViewUserManage(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, IsAdminUser]
