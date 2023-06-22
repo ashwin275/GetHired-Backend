@@ -30,6 +30,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+TIME_ZONE = 'Asia/Kolkata'
+USE_TZ = True
+
+
 
 # Application definition
 

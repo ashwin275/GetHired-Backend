@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .sendmails import send_email_verify
 import uuid
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model,login
 from .models import Account
 from .token import get_tokens
 from rest_framework_simplejwt.tokens import AccessToken # type: ignore
@@ -15,7 +15,7 @@ from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication  # type: ignore
 from rest_framework_simplejwt.tokens import OutstandingToken, BlacklistedToken  # type: ignore
-
+from django.utils import timezone
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
 # from rest_framework_simplejwt.views import TokenObtainPairView            # type: ignore
 # class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -48,7 +48,7 @@ class RegisterView(APIView):
         user_profile.email_token = token
         user_profile.is_active = True
         user_profile.save()
-        send_email_verify(serializer.data['email'],token)
+        # send_email_verify(serializer.data['email'],token)
         response = Response()
         response.data = {
          'message': f"Account successfully created for {serializer.data['first_name']}",
@@ -115,7 +115,10 @@ class LoginView(APIView):
                 raise AuthenticationFailed('You are not an admin')
         case _:
             raise AuthenticationFailed('Invalid role')
-
+    user.last_login = timezone.now()
+    print(timezone.now())
+    user.save()
+    print(user.last_login)
     Serialized_data = UserInfoSerializer(user)
     token = get_tokens(user)
     response = Response()

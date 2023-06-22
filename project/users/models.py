@@ -43,7 +43,7 @@ class Account(AbstractBaseUser):
     email = models.EmailField(max_length=40, unique=True)
     mobile = models.CharField(max_length=10)
     date_joined = models.DateField(auto_now_add=True)
-    last_login = models.DateField(auto_now=True)
+    last_login = models.DateTimeField(auto_now=True)
     is_admin = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
     is_employer = models.BooleanField(default=False)

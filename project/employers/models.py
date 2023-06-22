@@ -16,3 +16,24 @@ class RecruitersProfile(models.Model):
     company_address_line2 = models.CharField(max_length=50)
     description = models.TextField()
     post_balance = models.IntegerField(default=0,null=True)
+
+
+
+class JobPost(models.Model):
+    company = models.ForeignKey(RecruitersProfile,on_delete=models.CASCADE)
+    desgination = models.CharField(blank=True)
+    skills = models.TextField(blank=True)
+    vaccancies = models.IntegerField(blank=True)
+    location = models.TextField(blank=True)
+    Type = models.CharField(blank=True)
+    workmode = models.CharField(blank=True)
+    experience_from = models.CharField(blank=True)
+    experience_to = models.CharField(blank=True)
+    job_description = models.TextField()
+    criteria = models.CharField(blank=True)
+    payscale_from = models.CharField(blank=True)
+    applicants = models.IntegerField(default=0)
+    hired_count = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True) 
+    
+    

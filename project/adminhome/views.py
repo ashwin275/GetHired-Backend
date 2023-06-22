@@ -10,7 +10,7 @@ from rest_framework.exceptions import NotFound
 # Create your views here.
 
 class AdminHomeview(APIView):
-        
+     permission_classes = [IsAuthenticated]
      def get(self,request):
          user = request.user
          print(user,'ooooooooooooooooooooo')
