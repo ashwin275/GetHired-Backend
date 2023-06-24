@@ -1,6 +1,6 @@
 from rest_framework import serializers,validators
 from .models import Account,UserProfile
-
+from employers.models import JobPost
 
 
 
@@ -47,5 +47,30 @@ class UserSerializer(serializers.ModelSerializer):
         exclude = ('password','email_token')
 
 
+class JobSeekerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+
+        fields = '__all__'
 
 
+    
+    def update(self, instance, validated_data):
+        profile = validated_data.pop('profile_picture',None)
+        resume = validated_data.pop('resume',None)
+        instance = super().update(instance, validated_data)
+
+        if profile:
+            instance.profile_picture = profile
+
+        if resume:
+            instance.resume = resume
+
+        instance.save()
+        return instance
+
+
+class jobpostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobPost
+        exclude = ('applicants','hired_count','is_active')

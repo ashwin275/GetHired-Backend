@@ -1,12 +1,17 @@
 from rest_framework.views import APIView
 from users.models import Account
+from .models import PostPlans
 from users.serializers import UserInfoSerializer,UserSerializer
+from .serializers import PostPlanSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
+from users.permission import IsAdmin
 from rest_framework_simplejwt.authentication import JWTAuthentication  # type: ignore
 from rest_framework import status
 from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import APIException ,NotFound
 # Create your views here.
 
 class AdminHomeview(APIView):
@@ -23,7 +28,7 @@ class AdminHomeview(APIView):
     
 class AdminViewUserManage(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def get_object(self, pk):
         try:
@@ -69,7 +74,7 @@ class AdminViewUserManage(APIView):
 
 class AdminViewEmployerManage(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
         user = request.user
@@ -79,5 +84,75 @@ class AdminViewEmployerManage(APIView):
         users = Account.objects.filter(is_employer=True)
         UserList = UserSerializer(users, many=True)
         return Response(UserList.data)
+
+
+
+
+class AddPostPlanView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request):
+        if not request.data:
+            return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            post = PostPlans.objects.create(
+                planName=request.data['planName'],
+                no_of_count=request.data['no_of_count'],
+                amount=request.data['amount']
+            )
+        except KeyError as e:
+            return Response({'detail': f'Missing required field: {e}'}, status=status.HTTP_400_BAD_REQUEST)
+        except ValidationError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        post.save()
+        serializer = PostPlanSerializer(post)
+
+        return Response({
+            'data': serializer.data,
+            'message': 'Post plan created successfully',
+        }, status=status.HTTP_201_CREATED)
+  
+
+
+    def get(self, request):
+        try:
+            post = PostPlans.objects.all()
+            serializer = PostPlanSerializer(post, many=True)
+            return Response({'data': serializer.data})
+        except APIException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def patch(self, request, pk):
+        if not request.data:
+            return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            post = PostPlans.objects.get(id=pk)
+        except PostPlans.DoesNotExist:
+            raise NotFound("Post plan not found.")
+
+        serializer = PostPlanSerializer(post, data=request.data, partial=True)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.save()
+
+        return Response({'data': serializer.data,"message":'data updated succesfully'},status=status.HTTP_200_OK)
+
+    def delete(self,request,pk):
+        try:
+            post = PostPlans.objects.get(id=pk)
+            post.delete()
+            return Response({'message':"deleted succesfully"},status=status.HTTP_204_NO_CONTENT)
+        except PostPlans.DoesNotExist:
+            raise NotFound("post plan not found")
+        except APIException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 

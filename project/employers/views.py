@@ -30,7 +30,9 @@ class EmployerEditView(APIView):
 
     def patch(self, request):
         user = request.user
-
+        if not user.is_employer:
+            return Response({'detail':'You are not an employer'},status=status.HTTP_403_FORBIDDEN)
+       
         try:
             user_profile = RecruitersProfile.objects.get(user=user)
             print(user_profile, 'found')

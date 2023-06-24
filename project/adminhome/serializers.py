@@ -1,5 +1,6 @@
 from rest_framework import serializers,validators
 from users.models import Account,UserProfile
+from .models import PostPlans
 
 
 
@@ -18,6 +19,18 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         exclude = ('password','email_token')
+
+class PostPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostPlans
+        fields = '__all__'
+
+
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance,validated_data)
+        instance.save()
+        return instance
 
 
 

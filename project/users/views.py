@@ -1,13 +1,13 @@
 from rest_framework.views import APIView
 from .models import Account
-from .serializers import RegisterSerializer,UserInfoSerializer,UserSerializer
+from .serializers import RegisterSerializer,UserInfoSerializer,UserSerializer,JobSeekerSerializer ,jobpostSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
 from .sendmails import send_email_verify
 import uuid
 from django.contrib.auth import get_user_model,login
-from .models import Account
+from .models import Account , UserProfile,Experience
 from .token import get_tokens
 from rest_framework_simplejwt.tokens import AccessToken # type: ignore
 from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
@@ -16,6 +16,8 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication  # type: ignore
 from rest_framework_simplejwt.tokens import OutstandingToken, BlacklistedToken  # type: ignore
 from django.utils import timezone
+from .permission import IsSeeker
+from employers.models import JobPost
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
 # from rest_framework_simplejwt.views import TokenObtainPairView            # type: ignore
 # class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -198,4 +200,47 @@ class LogoutView(APIView):
 
 
 
+class UserHomeView(APIView):
+    permission_classes = [IsAuthenticated,IsSeeker]
+    def get(self,request):
+        user = request.user
+
+       
+        try:
+            user_profile = UserProfile.objects.get(user = user)
+            print('user profile found')
+        except UserProfile.DoesNotExist:
+            user_profile = UserProfile.objects.create(user = user)
+            print('profile created')
+
+        serialized_data = JobSeekerSerializer(user_profile)
+
+        return Response({'data':serialized_data.data,'message':'success'},status=status.HTTP_200_OK)
+
     
+    def patch(self,request):
+        user = request.user
+        if not request.data:
+             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user_profile = UserProfile.objects.get(user = user)
+            print('user profile found')
+        except UserProfile.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        serialized_data = JobSeekerSerializer(user_profile,data = request.data,partial = True)
+        if serialized_data.is_valid():
+           serialized_data.save(raise_exception=True)
+           return Response({'data':serialized_data.data,'message':'updated succesfully'},status=status.HTTP_202_ACCEPTED)
+        else:
+            return Response(serialized_data.errors)
+
+
+class ViewJobPosts(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self,request):
+        jobs = JobPost.objects.all()
+
+        serializer = jobpostSerializer(jobs,many = True)
+
+        return Response(serializer.data)
