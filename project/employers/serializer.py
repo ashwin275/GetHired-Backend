@@ -5,8 +5,8 @@ from users.models import Account
 
 class EmployerInfoSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Account
-        fields = ['id','first_name','email','date_joined','last_login','last_name','mobile']
+        model = RecruitersProfile
+        fields = '__all__'
 
 
 

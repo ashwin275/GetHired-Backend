@@ -5,28 +5,30 @@ from .serializer import EmployerInfoSerializer,EmployerEditSerializer,AddPostSer
 from rest_framework.permissions import IsAuthenticated
 from .models import RecruitersProfile,JobPost
 from django.views.decorators.csrf import csrf_exempt
+from users.permission import IsRecruiters
 # Create your views here.
 
 
 
 class EmployersHomeView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsRecruiters]
    
     def get(self,request):
         user = request.user
 
-        if not user.is_employer:
-            return Response({'detail':'You are not an employer'},status=status.HTTP_403_FORBIDDEN)
+        try:
+            Recruiter_profile = RecruitersProfile.objects.get(user = user)
+            print('recruiter profile found')
+        except Recruiter_profile.DoesNotExist:
+            Recruiter_profile = RecruitersProfile.objects.create(user = user)
+            print('profile created')
 
-        serialized_data = EmployerInfoSerializer(user)
+        serialized_data = EmployerInfoSerializer(Recruiter_profile)
         return Response( serialized_data.data)
     
 
-
-
-
 class EmployerEditView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsRecruiters]
 
     def patch(self, request):
         user = request.user
@@ -49,7 +51,7 @@ class EmployerEditView(APIView):
         
 
 class AddPostView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsRecruiters]
 
     def post(self, request):
         company = RecruitersProfile.objects.get(user = request.user)

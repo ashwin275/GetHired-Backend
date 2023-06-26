@@ -205,7 +205,6 @@ class UserHomeView(APIView):
     def get(self,request):
         user = request.user
 
-       
         try:
             user_profile = UserProfile.objects.get(user = user)
             print('user profile found')
