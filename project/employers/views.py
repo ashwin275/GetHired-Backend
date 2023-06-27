@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializer import EmployerInfoSerializer,EmployerEditSerializer,AddPostSerializer
+from .serializer import EmployerInfoSerializer,EmployerEditSerializer,AddPostSerializer,PostsSerializers,PostDetailSerializer
 from rest_framework.permissions import IsAuthenticated
 from .models import RecruitersProfile,JobPost
 from django.views.decorators.csrf import csrf_exempt
@@ -53,6 +53,22 @@ class EmployerEditView(APIView):
 class AddPostView(APIView):
     permission_classes = [IsAuthenticated,IsRecruiters]
 
+    
+
+    def get(self, request):
+        try:
+            Recruiter = RecruitersProfile.objects.get(user=request.user)
+            job_post = JobPost.objects.filter(company=Recruiter)
+            serializer = PostsSerializers(job_post, many=True)
+            return Response({'data':serializer.data}, status=status.HTTP_200_OK)
+        except RecruitersProfile.DoesNotExist:
+            return Response("Recruiter profile does not exist.", status=status.HTTP_404_NOT_FOUND)
+        except JobPost.DoesNotExist:
+            return Response("Job post does not exist.", status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
     def post(self, request):
         company = RecruitersProfile.objects.get(user = request.user)
         if company.post_balance == 0:
@@ -77,3 +93,27 @@ class AddPostView(APIView):
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             except JobPost.DoesNotExist:
                 return Response({"message": 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+    def delete(self, request, pk):
+        try:
+            post = JobPost.objects.get(id=pk)
+            post.delete()
+            return Response({'message':'post deleted succesfully'},status=status.HTTP_301_MOVED_PERMANENTLY)
+        except JobPost.DoesNotExist:
+                 return Response("Job post does not exist.", status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class PostDetailView(APIView):
+    permission_classes = [IsAuthenticated,IsRecruiters]
+    def get(self, request, pk):
+        try:
+            post = JobPost.objects.get(id=pk)
+            serialized_data = PostDetailSerializer(post)
+            return Response({'data': serialized_data.data}, status=status.HTTP_200_OK)
+        except JobPost.DoesNotExist:
+            return Response("Job post does not exist.", status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)

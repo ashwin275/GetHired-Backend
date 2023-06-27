@@ -51,4 +51,15 @@ class AddPostSerializer(serializers.ModelSerializer):
         instance = super().update(instance,validated_data)
         instance.save()
         return instance
-      
+
+
+class PostsSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = JobPost
+        fields = ['id','desgination','skills','location','is_active','Type','workmode']
+
+
+class PostDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = JobPost
+        fields = "__all__"
