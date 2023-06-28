@@ -98,7 +98,7 @@ class AddPostView(APIView):
         try:
             post = JobPost.objects.get(id=pk)
             post.delete()
-            return Response({'message':'post deleted succesfully'},status=status.HTTP_301_MOVED_PERMANENTLY)
+            return Response({'message':'post deleted succesfully'},status=status.HTTP_200_OK)
         except JobPost.DoesNotExist:
                  return Response("Job post does not exist.", status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
