@@ -32,8 +32,8 @@ class EmployerEditView(APIView):
 
     def patch(self, request):
         user = request.user
-        if not user.is_employer:
-            return Response({'detail':'You are not an employer'},status=status.HTTP_403_FORBIDDEN)
+        if not request.data:
+             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
        
         try:
             user_profile = RecruitersProfile.objects.get(user=user)
@@ -58,7 +58,7 @@ class AddPostView(APIView):
     def get(self, request):
         try:
             Recruiter = RecruitersProfile.objects.get(user=request.user)
-            job_post = JobPost.objects.filter(company=Recruiter)
+            job_post = JobPost.objects.filter(company=Recruiter).order_by('-id')
             serializer = PostsSerializers(job_post, many=True)
             return Response({'data':serializer.data}, status=status.HTTP_200_OK)
         except RecruitersProfile.DoesNotExist:
@@ -71,7 +71,10 @@ class AddPostView(APIView):
 
     def post(self, request):
         company = RecruitersProfile.objects.get(user = request.user)
+        if not request.data:
+             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
         if company.post_balance == 0:
+            print(company.post_balance,'post balance')
             return Response({"message":'No posts available for your account please buy posts'},status=status.HTTP_402_PAYMENT_REQUIRED)
         serializer = AddPostSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -79,9 +82,11 @@ class AddPostView(APIView):
         serializer.save()
         company.post_balance -= 1
         company.save()
-        return Response({"data": serializer.data, "balance_post": company.post_balance}, status=status.HTTP_200_OK)
+        return Response({"data": serializer.data, "balance_post": company.post_balance,"message":'Post has been successfully added!'}, status=status.HTTP_200_OK)
 
     def patch(self, request, pk):
+            if not request.data:
+             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
             try:
                 job_post = JobPost.objects.get(id=pk)
                 print(request.data,'111111111111111')
