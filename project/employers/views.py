@@ -45,7 +45,7 @@ class EmployerEditView(APIView):
         serialized_data = EmployerEditSerializer(user_profile,data=request.data,partial = True)
         if serialized_data.is_valid():
             serialized_data.save(raise_exception=True)
-            return Response(serialized_data.data)
+            return Response({'data':serialized_data.data,'message':'profile has been succesfully edited'})
         else:
             return Response(serialized_data.errors)
         

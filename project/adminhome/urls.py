@@ -19,5 +19,6 @@ urlpatterns = [
      path('edit-post-plans/<int:pk>/',views.AddPostPlanView.as_view(),name='add-post-plans'),
      path('view-post-plans/',views.AddPostPlanView.as_view(),name='view-post-plans'),
      path('delete-post-plans/<int:pk>/',views.AddPostPlanView.as_view(),name='delete-post-plans'),
+     path('view-post-plans/<int:pk>/',views.AddPostPlanView.as_view(),name='view-post-plans')
     
 ]

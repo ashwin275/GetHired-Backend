@@ -6,7 +6,7 @@ from .serializers import PostPlanSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from users.permission import IsAdmin
+from users.permission import IsSuperuser
 from rest_framework_simplejwt.authentication import JWTAuthentication  # type: ignore
 from rest_framework import status
 from rest_framework.exceptions import NotFound
@@ -28,7 +28,7 @@ class AdminHomeview(APIView):
     
 class AdminViewUserManage(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsSuperuser]
 
     def get_object(self, pk):
         try:
@@ -74,7 +74,7 @@ class AdminViewUserManage(APIView):
 
 class AdminViewEmployerManage(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsSuperuser]
 
     def get(self, request):
         user = request.user
@@ -89,42 +89,51 @@ class AdminViewEmployerManage(APIView):
 
 
 class AddPostPlanView(APIView):
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [IsAuthenticated, IsSuperuser]
 
     def post(self, request):
         if not request.data:
             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            post = PostPlans.objects.create(
-                planName=request.data['planName'],
-                no_of_count=request.data['no_of_count'],
-                amount=request.data['amount']
-            )
-        except KeyError as e:
-            return Response({'detail': f'Missing required field: {e}'}, status=status.HTTP_400_BAD_REQUEST)
-        except ValidationError as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        post.save()
-        serializer = PostPlanSerializer(post)
+        
+        
+        serializer = PostPlanSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
         return Response({
             'data': serializer.data,
-            'message': 'Post plan created successfully',
+            'message': 'New Plan created successfully',
         }, status=status.HTTP_201_CREATED)
   
 
 
-    def get(self, request):
-        try:
-            post = PostPlans.objects.all()
-            serializer = PostPlanSerializer(post, many=True)
-            return Response({'data': serializer.data})
-        except APIException as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+       
+        
+    def get(self,request,pk = None):
+
+        if pk is not None:
+            try:
+                post = PostPlans.objects.get(id=pk).order_by('-id')
+                serializer = PostPlanSerializer(post)
+                return Response({'data':serializer.data})
+            except APIException as e :
+                return Response({'detail':str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        else:
+            try:
+                post = PostPlans.objects.all()
+                serializer = PostPlanSerializer(post, many=True)
+                return Response({'data': serializer.data})
+            except APIException as e:
+                return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        
 
     def patch(self, request, pk):
+        if not request.data:
+             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
         if not request.data:
             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -142,13 +151,13 @@ class AddPostPlanView(APIView):
 
         serializer.save()
 
-        return Response({'data': serializer.data,"message":'data updated succesfully'},status=status.HTTP_200_OK)
+        return Response({'data': serializer.data,"message":' Updated succesfully'},status=status.HTTP_200_OK)
 
     def delete(self,request,pk):
         try:
             post = PostPlans.objects.get(id=pk)
             post.delete()
-            return Response({'message':"deleted succesfully"},status=status.HTTP_204_NO_CONTENT)
+            return Response({'message':"Plan has been deleted succesfully"},status=status.HTTP_200_OK)
         except PostPlans.DoesNotExist:
             raise NotFound("post plan not found")
         except APIException as e:

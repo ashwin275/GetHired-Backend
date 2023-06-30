@@ -14,7 +14,7 @@ class IsRecruiters(BasePermission):
     
 
 
-class IsAdmin(BasePermission):
+class IsSuperuser(BasePermission):
     def has_permission(self, request, view):
         user = request.user
         print(user,'.............admin..........')
