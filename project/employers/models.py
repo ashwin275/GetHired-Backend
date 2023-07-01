@@ -15,7 +15,7 @@ class RecruitersProfile(models.Model):
     company_address_line1 = models.CharField(max_length=50)
     company_address_line2 = models.CharField(max_length=50)
     description = models.TextField()
-    post_balance = models.IntegerField(default=0,null=True)
+    post_balance = models.IntegerField(default=2,null=True)
 
 
 

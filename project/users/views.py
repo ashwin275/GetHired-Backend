@@ -1,15 +1,15 @@
 from rest_framework.views import APIView
 from .models import Account
-from .serializers import RegisterSerializer,UserInfoSerializer,UserSerializer,JobSeekerSerializer ,jobpostSerializer
+from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
 from .sendmails import send_email_verify
 import uuid
-from django.contrib.auth import get_user_model,login
-from .models import Account , UserProfile,Experience
+from django.contrib.auth import get_user_model, login
+from .models import Account, UserProfile, Experience
 from .token import get_tokens
-from rest_framework_simplejwt.tokens import AccessToken # type: ignore
+from rest_framework_simplejwt.tokens import AccessToken  # type: ignore
 from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
 # import jwt , datetime
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
@@ -26,23 +26,23 @@ from employers.models import JobPost
 #         token = super().get_token(user)
 
 #         # Add custom claims
-#         token['username'] = user.username 
+#         token['username'] = user.username
 #         # ...
 
 #         return token
-    
+
 # class MyTokenObtainPairView(TokenObtainPairView):
 #     serializer_class = MyTokenObtainPairSerializer
 
 
 class RegisterView(APIView):
-    def post(self,request):
-        print(request.data,'dataaaaaaaaaaaaaaaaaaaaaaa')
-      
+    def post(self, request):
+        print(request.data, 'dataaaaaaaaaaaaaaaaaaaaaaa')
+
         if not request.data:
             return Response({'error': 'No data provided.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        serializer = RegisterSerializer(data = request.data,partial = True)
+
+        serializer = RegisterSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         token = str(uuid.uuid4())
 
@@ -50,97 +50,94 @@ class RegisterView(APIView):
         user_profile.email_token = token
         user_profile.is_active = True
         user_profile.save()
-        # send_email_verify(serializer.data['email'],token)
+        send_email_verify(serializer.data['email'],token)
         response = Response()
         response.data = {
-         'message': f"Account successfully created for {serializer.data['first_name']}",
-         'message_email':f"Email verification required ",
-         'Userinfo':serializer.data
-              }
+            'message': f"Account successfully created for {serializer.data['first_name']}",
+            'message_email': f"Email verification required ",
+            'Userinfo': serializer.data
+        }
         return response
-       
-    def get(self,request,token):
+
+    def get(self, request, token):
         # User = get_user_model()
         try:
             user = Account.objects.get(email_token=token)
             if user.is_verified == True:
                 verify_response = {
-                    'message':'Account already verified',
-                     'is_seeker':user.is_seeker
+                    'message': 'Account already verified',
+                    'is_seeker': user.is_seeker
                 }
-                return Response( verify_response)
+                return Response(verify_response)
             else:
                 user.is_verified = True
                 user.is_active = True
                 user.save()
-                print(user,'........................................')
-                print(user.is_seeker,'deeeeeeeeeeeeeeee')
+                print(user, '........................................')
+                print(user.is_seeker, 'deeeeeeeeeeeeeeee')
                 response_data = {
-                'message': 'Email verified successfully.',
-                'is_seeker':user.is_seeker
+                    'message': 'Email verified successfully.',
+                    'is_seeker': user.is_seeker
                 }
                 return Response(response_data)
         except:
-             return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
-
+            return Response({'error': 'Invalid token'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class LoginView(APIView):
-   def post(self, request):
-    email = request.data['email']
-    password = request.data['password']
-    role = request.data['role']
+    def post(self, request):
+        email = request.data['email']
+        password = request.data['password']
+        role = request.data['role']
 
-    try:
-        user = Account.objects.get(email=email)
-    except Account.DoesNotExist:
-        raise AuthenticationFailed("User not found")
+        try:
+            user = Account.objects.get(email=email)
+        except Account.DoesNotExist:
+            raise AuthenticationFailed("User not found")
 
-    if not user.check_password(password):
-        raise AuthenticationFailed('Incorrect password')
+        if not user.check_password(password):
+            raise AuthenticationFailed('Incorrect password')
 
-    if not user.is_active:
-        raise AuthenticationFailed('Your account is blocked')
+        if not user.is_active:
+            raise AuthenticationFailed('Your account is blocked')
 
-    if not user.is_verified:
-        raise AuthenticationFailed('Your account is not verified')
+        if not user.is_verified:
+            raise AuthenticationFailed('Your account is not verified')
 
-    match role:
-        case 'is_seeker':
-            if not user.is_seeker:
-                raise AuthenticationFailed('You are not an user')
-        case 'is_employer':
-            if not user.is_employer:
-                raise AuthenticationFailed('You are not an employer')
-        case 'is_superuser':
-            if not user.is_superuser:
-                raise AuthenticationFailed('You are not an admin')
-        case _:
-            raise AuthenticationFailed('Invalid role')
-    user.last_login = timezone.now()
-    print(timezone.now())
-    user.save()
-    print(user.last_login)
-    Serialized_data = UserInfoSerializer(user)
-    token = get_tokens(user)
-    response = Response()
-    response.set_cookie(key='jwt',value=token,httponly=True)
-    response.data = {
-        'userInfo': Serialized_data.data,
-        'token': token,
-        'message':'successfully loged',
-         'status':200
-    }
-    return response
-   
-    
-   def get(self,request):
+        match role:
+            case 'is_seeker':
+                if not user.is_seeker:
+                    raise AuthenticationFailed('You are not an user')
+            case 'is_employer':
+                if not user.is_employer:
+                    raise AuthenticationFailed('You are not an employer')
+            case 'is_superuser':
+                if not user.is_superuser:
+                    raise AuthenticationFailed('You are not an admin')
+            case _:
+                raise AuthenticationFailed('Invalid role')
+        user.last_login = timezone.now()
+        print(timezone.now())
+        user.save()
+        print(user.last_login)
+        Serialized_data = UserInfoSerializer(user)
+        token = get_tokens(user)
+        response = Response()
+        response.set_cookie(key='jwt', value=token, httponly=True)
+        response.data = {
+            'userInfo': Serialized_data.data,
+            'token': token,
+            'message': 'successfully loged',
+            'status': 200
+        }
+        return response
+
+    def get(self, request):
         user_id = request.user
         print(user_id)
         # user = Account.objects.get(id=user_id)
         return Response({'user_id': user_id})
 
-   
 
 #    def get(self, request):
 #         token = request.headers.get('Authorization')
@@ -150,7 +147,7 @@ class LoginView(APIView):
 #         if not token:
 #             raise AuthenticationFailed('Unauthenticated!1212121212')
 #         try:
-           
+
 #             # token = token.split(' ')[1]
 #             # payload = jwt.decode(token, 'secret', algorithms=['HS256'])
 
@@ -182,7 +179,7 @@ class UserDetailsView(APIView):
         user = request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
-    
+
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -199,47 +196,48 @@ class LogoutView(APIView):
         return Response({'detail': 'Logout successful'})
 
 
-
 class UserHomeView(APIView):
-    permission_classes = [IsAuthenticated,IsSeeker]
-    def get(self,request):
+    permission_classes = [IsAuthenticated, IsSeeker]
+
+    def get(self, request):
         user = request.user
 
         try:
-            user_profile = UserProfile.objects.get(user = user)
+            user_profile = UserProfile.objects.get(user=user)
             print('user profile found')
         except UserProfile.DoesNotExist:
-            user_profile = UserProfile.objects.create(user = user)
+            user_profile = UserProfile.objects.create(user=user)
             print('profile created')
 
         serialized_data = JobSeekerSerializer(user_profile)
 
-        return Response({'data':serialized_data.data,'message':'success'},status=status.HTTP_200_OK)
+        return Response({'data': serialized_data.data, 'message': 'success'}, status=status.HTTP_200_OK)
 
-    
-    def patch(self,request):
+    def patch(self, request):
         user = request.user
         if not request.data:
-             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            user_profile = UserProfile.objects.get(user = user)
+            user_profile = UserProfile.objects.get(user=user)
             print('user profile found')
         except UserProfile.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        
-        serialized_data = JobSeekerSerializer(user_profile,data = request.data,partial = True)
+
+        serialized_data = JobSeekerSerializer(
+            user_profile, data=request.data, partial=True)
         if serialized_data.is_valid():
-           serialized_data.save(raise_exception=True)
-           return Response({'data':serialized_data.data,'message':'updated succesfully'},status=status.HTTP_202_ACCEPTED)
+            serialized_data.save(raise_exception=True)
+            return Response({'data': serialized_data.data, 'message': 'updated succesfully'}, status=status.HTTP_202_ACCEPTED)
         else:
             return Response(serialized_data.errors)
 
 
 class ViewJobPosts(APIView):
     permission_classes = [IsAuthenticated]
-    def get(self,request):
+
+    def get(self, request):
         jobs = JobPost.objects.all()
 
-        serializer = jobpostSerializer(jobs,many = True)
+        serializer = jobpostSerializer(jobs, many=True)
 
         return Response(serializer.data)

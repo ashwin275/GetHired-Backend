@@ -115,7 +115,8 @@ class AddPostPlanView(APIView):
 
         if pk is not None:
             try:
-                post = PostPlans.objects.get(id=pk).order_by('-id')
+                post = PostPlans.objects.get(id=pk)
+
                 serializer = PostPlanSerializer(post)
                 return Response({'data':serializer.data})
             except APIException as e :
@@ -123,7 +124,7 @@ class AddPostPlanView(APIView):
             
         else:
             try:
-                post = PostPlans.objects.all()
+                post = PostPlans.objects.all().order_by('-id')
                 serializer = PostPlanSerializer(post, many=True)
                 return Response({'data': serializer.data})
             except APIException as e:
