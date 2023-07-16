@@ -14,6 +14,7 @@ urlpatterns = [
 
 
     path('post-plans/', views.BuyPostPlanview.as_view(), name='post-plans'),
+    path('buy-plan/',views.BuyPostPlanview.as_view(),name='buy-plan'),
 
 ]
 

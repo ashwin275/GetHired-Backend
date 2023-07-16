@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializer import EmployerInfoSerializer, EmployerEditSerializer, AddPostSerializer, PostsSerializers, PostDetailSerializer
 from rest_framework.permissions import IsAuthenticated
-from .models import RecruitersProfile, JobPost
+from .models import RecruitersProfile, JobPost,Payment
+
 from django.views.decorators.csrf import csrf_exempt
 from adminhome.serializers import PostPlanSerializer
 from adminhome.models import PostPlans
@@ -57,6 +58,7 @@ class AddPostView(APIView):
     permission_classes = [IsAuthenticated, IsRecruiters]
 
     def get(self, request):
+
         try:
             Recruiter = RecruitersProfile.objects.get(user=request.user)
             job_post = JobPost.objects.filter(
@@ -131,9 +133,55 @@ class BuyPostPlanview(APIView):
     permission_classes = [IsAuthenticated, IsRecruiters]
 
     def get(self, request):
+        
         try:
             post = PostPlans.objects.all()
             serializer = PostPlanSerializer(post, many=True)
             return Response({'data': serializer.data})
         except APIException as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+    def post(self,request):
+        if not request.data:
+            return Response({'error': 'No data provided.'}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+        plan_id = request.data.get('plan_id')
+        order_id = request.data.get('order_id')
+
+        amount = request.data.get('amount')
+        
+        try:
+            post = PostPlans.objects.get(id = plan_id)
+            if amount:
+                print(amount,post.amount)
+                if float(amount) != float(post.amount):
+                    return Response({
+                        'error':'amount doesnot match'
+                    },status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'error':'provide amount'
+                },status=status.HTTP_400_BAD_REQUEST)
+        except PostPlans.DoesNotExist:
+            return Response({
+                'error':'PostPlan doesnot exist'
+            },status=status.HTTP_404_NOT_FOUND)
+        try:
+           payment = Payment.objects.create(
+               user = request.user,
+               amount = post.amount,
+               is_paid = True,
+               order_payment_id = order_id
+           )
+           payment.save()
+           user_account = RecruitersProfile.objects.get(user= request.user)
+           user_account.post_balance += post.no_of_count
+           user_account.save()
+           return Response({
+               'message':'payment succes',
+               'post_balance':user_account.post_balance
+           },status=status.HTTP_200_OK)
+        except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+   

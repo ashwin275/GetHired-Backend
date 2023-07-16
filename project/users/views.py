@@ -86,9 +86,15 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     def post(self, request):
-        email = request.data['email']
-        password = request.data['password']
-        role = request.data['role']
+        if not request.data:
+            return Response({'error': 'No data provided.'}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            email = request.data.get('email')
+            password = request.data.get('password')
+            role = request.data.get('role')
+        except Exception as e:
+            return Response({'error':str(e)},status=status.HTTP_400_BAD_REQUEST) 
 
         try:
             user = Account.objects.get(email=email)

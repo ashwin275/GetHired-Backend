@@ -51,7 +51,8 @@ class Account(AbstractBaseUser):
     is_superuser = models.BooleanField(default=False)
     is_seeker = models.BooleanField(default=False)
     email_token = models.CharField(max_length=250, null=True)
-    is_staff = True
+    is_staff = models.BooleanField(default=False)
+    
     
 
     USERNAME_FIELD = 'email'

@@ -36,5 +36,12 @@ class JobPost(models.Model):
     applicants = models.IntegerField(default=0)
     hired_count = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True) 
-    
-    
+
+
+
+class Payment(models.Model):
+    user = models.ForeignKey(Account,on_delete=models.CASCADE)
+    amount = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_paid = models.BooleanField(default=False)
+    order_payment_id = models.CharField(max_length=300)
