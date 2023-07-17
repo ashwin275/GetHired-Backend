@@ -18,6 +18,8 @@ from rest_framework_simplejwt.tokens import OutstandingToken, BlacklistedToken  
 from django.utils import timezone
 from .permission import IsSeeker
 from employers.models import JobPost
+from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.exceptions import APIException
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
 # from rest_framework_simplejwt.views import TokenObtainPairView            # type: ignore
 # class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -238,12 +240,20 @@ class UserHomeView(APIView):
             return Response(serialized_data.errors)
 
 
+
+
 class ViewJobPosts(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = LimitOffsetPagination
 
     def get(self, request):
-        jobs = JobPost.objects.all()
+        try:
+            jobs = JobPost.objects.all().order_by('-id')
+            paginator = self.pagination_class()
+            paginated_jobs = paginator.paginate_queryset(jobs, request)
+            serializer = jobpostSerializer(paginated_jobs, many=True)
 
-        serializer = jobpostSerializer(jobs, many=True)
+            return paginator.get_paginated_response(serializer.data)
 
-        return Response(serializer.data)
+        except Exception as e:
+            raise APIException('Error retrieving job posts: {}'.format(str(e)))
