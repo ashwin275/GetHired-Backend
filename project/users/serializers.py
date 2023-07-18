@@ -74,3 +74,44 @@ class jobpostSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobPost
         exclude = ('applicants','hired_count','is_active')
+
+
+class JobListSerializer(serializers.ModelSerializer):
+    company = serializers.SerializerMethodField()
+    
+    profile_picture = serializers.SerializerMethodField()
+
+    class Meta:
+        model = JobPost
+        fields = ['id','desgination', 'location', 'company','profile_picture']
+        
+    def get_company(self, obj):
+        return obj.company.company_name
+
+    # def get_company_email(self, obj):
+    #     return obj.company.company_email
+    def get_profile_picture(self, obj):
+        return obj.company.profile_picture.url
+    
+
+
+class JobDetailSerialzer(serializers.ModelSerializer):
+    company = serializers.SerializerMethodField()
+    profile_picture = serializers.SerializerMethodField()
+    company_email = serializers.SerializerMethodField()
+    company_mobile = serializers.SerializerMethodField()
+    class Meta:
+        model = JobPost
+        exclude = ['hired_count']
+
+
+    def get_company(self, obj):
+        return obj.company.company_name
+    
+    def get_profile_picture(self, obj):
+        return obj.company.profile_picture.url
+    
+    def get_company_email(self,obj):
+        return obj.company.company_email
+    def get_company_mobile(self,obj):
+        return obj.company.company_mobile

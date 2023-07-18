@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from .models import Account
-from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer
+from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer,JobListSerializer,JobDetailSerialzer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
@@ -251,9 +251,30 @@ class ViewJobPosts(APIView):
             jobs = JobPost.objects.all().order_by('-id')
             paginator = self.pagination_class()
             paginated_jobs = paginator.paginate_queryset(jobs, request)
-            serializer = jobpostSerializer(paginated_jobs, many=True)
-
+            serializer = JobListSerializer(paginated_jobs, many=True)
+            print('data called')
             return paginator.get_paginated_response(serializer.data)
+
+        except Exception as e:
+            raise APIException('Error retrieving job posts: {}'.format(str(e)))
+
+
+class ViewJobDetails(APIView):
+    permission_classes = [IsAuthenticated]
+    
+
+    def get(self, request,pk):
+        
+        try:
+            try:
+               jobs = JobPost.objects.get(id=pk)
+            except:
+                return Response({'error':'Job Not found'},status=status.HTTP_404_NOT_FOUND)
+            
+            serializer = JobDetailSerialzer(jobs,)
+
+            return Response({'data':serializer.data},status=status.HTTP_200_OK)
+        
 
         except Exception as e:
             raise APIException('Error retrieving job posts: {}'.format(str(e)))

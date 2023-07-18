@@ -19,6 +19,7 @@ urlpatterns = [
      path('seeker/view/',views.UserHomeView.as_view(),name='seeker-view'),
      
      path('view-jobs/',views.ViewJobPosts.as_view(),name="view-jobs"),
+     path('job-detail/<int:pk>/',views.ViewJobDetails.as_view(),name='job-detail')
 
 
 ]
