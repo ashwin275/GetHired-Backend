@@ -1,8 +1,14 @@
 from django.db import models
-from users.models import Account
+from users.models import Account,UserProfile
 # Create your models here.
 
+status_Choice =(
+    ('applied','applied'),
+     ('intervied','intervied'),
+    ('shortlisted','shortlisted'),
+    ('rejected','rejected')
 
+)
 class RecruitersProfile(models.Model):
     user = models.OneToOneField(Account,on_delete=models.CASCADE)
     profile_picture = models.ImageField(blank=True,null=True,default=None)
@@ -45,3 +51,13 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_paid = models.BooleanField(default=False)
     order_payment_id = models.CharField(max_length=300)
+
+
+
+class JobApplication(models.Model):
+    user = models.ForeignKey(UserProfile,on_delete=models.CASCADE)
+    recruiter = models.ForeignKey(RecruitersProfile,on_delete=models.CASCADE)
+    job = models.ForeignKey(JobPost,on_delete=models.CASCADE)
+    status = models.CharField(max_length=15,choices=status_Choice,default='applied')
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)

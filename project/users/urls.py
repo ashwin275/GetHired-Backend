@@ -17,6 +17,7 @@ urlpatterns = [
      #...............job seeker.................
 
      path('seeker/view/',views.UserHomeView.as_view(),name='seeker-view'),
+     path('seekers/edit-profile/',views.UserHomeView.as_view(),name='seekere-edit-profile'),
      
      path('view-jobs/',views.ViewJobPosts.as_view(),name="view-jobs"),
      path('job-detail/<int:pk>/',views.ViewJobDetails.as_view(),name='job-detail'),
@@ -24,7 +25,12 @@ urlpatterns = [
      path('get-experience/',views.ExperienceApiView.as_view(),name='get-experience'),
      path('add-experience/',views.ExperienceApiView.as_view(),name='add-experience'),
      path('update-expereience/<int:pk>/',views.ExperienceApiView.as_view(),name='update-experience'),
-     path('delete-expereince/<int:pk>/',views.ExperienceApiView.as_view(),name='delete-expereince')
+     path('delete-expereince/<int:pk>/',views.ExperienceApiView.as_view(),name='delete-expereince'),
+
+     path('job-apply/<int:pk>/',views.jobApplyApiView.as_view(),name='job-apply'),
+     path('decline-apply/<int:pk>/',views.jobApplyApiView.as_view(),name='decline-job-apply'),
+
+     path('applied-jobs/',views.AppliedJobsApiView.as_view(),name='applied-jobs')
 
 
 ]

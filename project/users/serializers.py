@@ -1,6 +1,6 @@
 from rest_framework import serializers,validators
 from .models import Account,UserProfile,Experience
-from employers.models import JobPost
+from employers.models import JobPost,JobApplication
 
 
 
@@ -69,6 +69,9 @@ class JobSeekerSerializer(serializers.ModelSerializer):
         return obj.user.mobile
     
     def update(self, instance, validated_data):
+        
+        
+        
         profile = validated_data.pop('profile_picture',None)
         resume = validated_data.pop('resume',None)
         instance = super().update(instance, validated_data)
@@ -126,6 +129,7 @@ class JobDetailSerialzer(serializers.ModelSerializer):
     profile_picture = serializers.SerializerMethodField()
     company_email = serializers.SerializerMethodField()
     company_mobile = serializers.SerializerMethodField()
+    company_website = serializers.SerializerMethodField()
     class Meta:
         model = JobPost
         exclude = ['hired_count']
@@ -141,3 +145,30 @@ class JobDetailSerialzer(serializers.ModelSerializer):
         return obj.company.company_email
     def get_company_mobile(self,obj):
         return obj.company.company_mobile
+    def get_company_website(self,obj):
+        return obj.company.company_website
+
+
+class JobApplicationSerializers(serializers.ModelSerializer):
+    job = serializers.SerializerMethodField()
+   
+    location = serializers.SerializerMethodField()
+    
+    recruiter = serializers.SerializerMethodField()
+    class Meta:
+        model = JobApplication
+        exclude = ['user']
+
+    def get_recruiter(self,obj):
+        return obj.recruiter.company_name
+    
+    def get_job(self, obj):
+        return obj.job.desgination 
+    
+   
+    
+    def get_location(self,obj):
+        return obj.job.location
+    
+    # def get_company_name(self,obj):
+    #     return obj.recruiter.company_name

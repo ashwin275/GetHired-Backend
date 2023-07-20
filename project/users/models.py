@@ -41,7 +41,7 @@ class Account(AbstractBaseUser):
     first_name = models.CharField(max_length=40)
     last_name = models.CharField(max_length=40)
     email = models.EmailField(max_length=40, unique=True)
-    mobile = models.CharField(max_length=10)
+    mobile = models.CharField(max_length=15)
     date_joined = models.DateField(auto_now_add=True)
     last_login = models.DateTimeField(auto_now=True)
     is_admin = models.BooleanField(default=False)
@@ -83,7 +83,7 @@ class UserProfile(models.Model):
 
 
     def get_completeness(self):
-        total_fields = 7  
+        total_fields = 8
         completed_fields = sum(
             field is not None and field != "" for field in [
                 self.profile_picture,
@@ -96,6 +96,7 @@ class UserProfile(models.Model):
                 self.qualification,
             ]
         )
+        print(completed_fields,'completed fields')
         completeness_percentage = (completed_fields / total_fields) * 100
         return completeness_percentage
 

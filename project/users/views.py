@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from .models import Account
-from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer,JobListSerializer,JobDetailSerialzer,ExperienceSerializer
+from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer, JobListSerializer, JobDetailSerialzer, ExperienceSerializer,JobApplicationSerializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,6 +8,7 @@ from .sendmails import send_email_verify
 import uuid
 from django.contrib.auth import get_user_model, login
 from .models import Account, UserProfile, Experience
+from employers.models import RecruitersProfile, JobApplication
 from .token import get_tokens
 from rest_framework_simplejwt.tokens import AccessToken  # type: ignore
 from rest_framework_simplejwt.tokens import RefreshToken  # type: ignore
@@ -52,7 +53,7 @@ class RegisterView(APIView):
         user_profile.email_token = token
         user_profile.is_active = True
         user_profile.save()
-        send_email_verify(serializer.data['email'],token)
+        send_email_verify(serializer.data['email'], token)
         response = Response()
         response.data = {
             'message': f"Account successfully created for {serializer.data['first_name']}",
@@ -89,14 +90,14 @@ class RegisterView(APIView):
 class LoginView(APIView):
     def post(self, request):
         if not request.data:
-            return Response({'error': 'No data provided.'}, 
+            return Response({'error': 'No data provided.'},
                             status=status.HTTP_400_BAD_REQUEST)
         try:
             email = request.data.get('email')
             password = request.data.get('password')
             role = request.data.get('role')
         except Exception as e:
-            return Response({'error':str(e)},status=status.HTTP_400_BAD_REQUEST) 
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = Account.objects.get(email=email)
@@ -221,101 +222,140 @@ class UserHomeView(APIView):
         pofile_completness = user_profile.get_completeness()
 
         return Response({'data': serialized_data.data,
-                         'profile_completness':round(pofile_completness,1),
-                          'message': 'success'}, status=status.HTTP_200_OK)
+                         'profile_completness': round(pofile_completness, 1),
+                         'message': 'success'}, status=status.HTTP_200_OK)
 
     def patch(self, request):
         user = request.user
         if not request.data:
             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
-    
         try:
-            user_profile = UserProfile.objects.get(user=user)
-            print('user profile found')
-        except UserProfile.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            try:
+                email = request.data.get('email', None)
 
-        serialized_data = JobSeekerSerializer(
-            user_profile, data=request.data, partial=True)
-        if serialized_data.is_valid():
-            serialized_data.save(raise_exception=True)
-            return Response({'data': serialized_data.data, 'message': 'updated succesfully'}, status=status.HTTP_202_ACCEPTED)
-        else:
-            return Response(serialized_data.errors)
+                if email:
+                    try:
+                        existing_user = Account.objects.get(email=email)
+                        if existing_user != request.user:
+
+                            error_message = "Email is already in use by another user."
+                            return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+                    except UserProfile.DoesNotExist:
+
+                        pass
+            except:
+                pass
+            try:
+                user_instance = request.user
+                user_instance.first_name = request.data.get(
+                    'first_name', user_instance.first_name)
+                user_instance.last_name = request.data.get(
+                    'last_name', user_instance.last_name)
+                user_instance.email = request.data.get(
+                    'email', user_instance.email)
+                user_instance.mobile = request.data.get(
+                    'mobile', user_instance.mobile)
+                user_instance.save()
+
+            except Exception as e:
+                error_message = str(e)
+                return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                user_profile = UserProfile.objects.get(user=user)
+                print('user profile found')
+            except UserProfile.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+
+            serialized_data = JobSeekerSerializer(
+                user_profile, data=request.data, partial=True)
+            if serialized_data.is_valid():
+                serialized_data.save(raise_exception=True)
+                userInfo_serializer = UserInfoSerializer(request.user)
+                return Response({'data': serialized_data.data,
+                                 'userInfo': userInfo_serializer.data,
+                                 'message': 'updated succesfully'}, status=status.HTTP_202_ACCEPTED)
+            else:
+                return Response(serialized_data.errors)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ExperienceApiView(APIView):
-    permission_classes = [IsAuthenticated,IsSeeker]
+    permission_classes = [IsAuthenticated, IsSeeker]
 
-    def get(self,request):
+    def get(self, request):
         try:
-            
-            userExperience = Experience.objects.filter(user = request.user)
-            if not userExperience:  
-                 return Response({'error': 'No experiences found'}, status=status.HTTP_404_NOT_FOUND)
-            serializer = ExperienceSerializer(userExperience,many = True)
+
+            userExperience = Experience.objects.filter(user=request.user)
+            if not userExperience:
+                return Response({'error': 'No experiences found'}, status=status.HTTP_404_NOT_FOUND)
+            serializer = ExperienceSerializer(userExperience, many=True)
             return Response({
-                'data':serializer.data
-            },status=status.HTTP_200_OK)
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
 
         except Experience.DoesNotExist:
-            return Response({'error':'not found'},status=status.HTTP_404_NOT_FOUND)
-    
-    def post(self,request):
+            return Response({'error': 'not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request):
         if not request.data:
             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-          serializer = ExperienceSerializer(data=request.data, context={'request': request})
-          if serializer.is_valid(raise_exception=True):
+            serializer = ExperienceSerializer(
+                data=request.data, context={'request': request})
+            if serializer.is_valid(raise_exception=True):
                 serializer.save()
                 userpofile = UserProfile.objects.get(user=request.user)
                 userpofile.experienced = True
                 userpofile.save()
                 return Response({
-                    'message':'Experience  added'
-                },status=status.HTTP_201_CREATED)
-          else:
-              return Response({'error':serializer.error},status=status.HTTP_400_BAD_REQUEST)
+                    'message': 'Experience  added'
+                }, status=status.HTTP_201_CREATED)
+            else:
+                return Response({'error': serializer.error}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            
-             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-    def patch(self,request,pk):
+
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def patch(self, request, pk):
         if not request.data:
             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
             try:
-              experience = Experience.objects.get(id=pk)
+                experience = Experience.objects.get(id=pk)
             except Experience.DoesNotExist:
-               return Response({
-                   'error':'not found'
-               },status=status.HTTP_404_NOT_FOUND)
-            
-            serializer = ExperienceSerializer(experience,data=request.data,partial = True)
+                return Response({
+                    'error': 'not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            serializer = ExperienceSerializer(
+                experience, data=request.data, partial=True)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
                 return Response({
-                    'message':'updated succesfully',
-                    'data':serializer.data
-                },status=status.HTTP_200_OK)
-                
+                    'message': 'updated succesfully',
+                    'data': serializer.data
+                }, status=status.HTTP_200_OK)
 
         except Exception as e:
-             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def delete(self,request,pk):
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def delete(self, request, pk):
         try:
             experience = Experience.objects.get(id=pk)
         except Experience.DoesNotExist:
             return Response({
-                   'error':'not found'
-               },status=status.HTTP_404_NOT_FOUND)
-        
+                'error': 'not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
         experience.delete()
         return Response({
-            'message':'succesfully removed'
-        },status=status.HTTP_200_OK)
+            'message': 'succesfully removed'
+        }, status=status.HTTP_200_OK)
+
 
 class ViewJobPosts(APIView):
     permission_classes = [IsAuthenticated]
@@ -336,20 +376,101 @@ class ViewJobPosts(APIView):
 
 class ViewJobDetails(APIView):
     permission_classes = [IsAuthenticated]
-    
 
-    def get(self, request,pk):
-        
+    def get(self, request, pk):
+
         try:
             try:
-               jobs = JobPost.objects.get(id=pk)
+                jobs = JobPost.objects.get(id=pk)
             except:
-                return Response({'error':'Job Not found'},status=status.HTTP_404_NOT_FOUND)
-            
+                return Response({'error': 'Job Not found'}, status=status.HTTP_404_NOT_FOUND)
+
             serializer = JobDetailSerialzer(jobs,)
 
-            return Response({'data':serializer.data},status=status.HTTP_200_OK)
-        
+            return Response({'data': serializer.data}, status=status.HTTP_200_OK)
 
         except Exception as e:
             raise APIException('Error retrieving job posts: {}'.format(str(e)))
+
+
+class jobApplyApiView(APIView):
+    permission_classes = [IsAuthenticated,IsSeeker]
+
+    def post(self, request, pk):
+        try:
+
+            try:
+                Job = JobPost.objects.get(id=pk)
+            except JobPost.DoesNotExist:
+                return Response({
+                    'error', 'job doesnot exist'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            userProfile = UserProfile.objects.get(user=request.user)
+            recruiters = RecruitersProfile.objects.get(user=Job.company.user)
+            print(recruiters)
+            try:
+                jobappied = JobApplication.objects.get(
+                    user=userProfile, job=Job, recruiter=recruiters)
+                if jobappied:
+                    return Response({
+                        'error': 'Job Already Applied'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except:
+                pass
+
+            job_application = JobApplication.objects.create(
+                user=userProfile,
+                recruiter=recruiters,
+                job=Job
+            )
+
+            job_application.save()
+            Job.applicants+=1
+            Job.save()
+            return Response({
+                'message': 'Succesfully Applied'
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+    def delete(self,request,pk):
+           try:
+               jobapplication = JobApplication.objects.get(id = pk)
+
+               if request.user == jobapplication.user.user:
+                   jobapplication.delete()
+                   return Response({
+                       'message':'Application declined'
+                   },status=status.HTTP_200_OK)
+               else:
+                   return Response({
+                       'error':'no permision to perform this action'
+                   },status=status.HTTP_401_UNAUTHORIZED)
+
+           except Exception as e:
+               return Response({
+                   'error':str(e)
+               },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+class AppliedJobsApiView(APIView):
+    permission_classes = [IsAuthenticated,IsSeeker]
+
+    def get(self,request):
+        try:
+            userProfile_obj = UserProfile.objects.get(user=request.user)
+            applications = JobApplication.objects.filter(user = userProfile_obj)
+
+            serializer = JobApplicationSerializers(applications,many=True)
+            
+
+            return Response({
+                'payload':serializer.data,
+                'message':'succes'
+            },status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error':str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
