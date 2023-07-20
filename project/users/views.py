@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from .models import Account
-from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer,JobListSerializer,JobDetailSerialzer
+from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer,JobListSerializer,JobDetailSerialzer,ExperienceSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
@@ -218,13 +218,17 @@ class UserHomeView(APIView):
             print('profile created')
 
         serialized_data = JobSeekerSerializer(user_profile)
+        pofile_completness = user_profile.get_completeness()
 
-        return Response({'data': serialized_data.data, 'message': 'success'}, status=status.HTTP_200_OK)
+        return Response({'data': serialized_data.data,
+                         'profile_completness':round(pofile_completness,1),
+                          'message': 'success'}, status=status.HTTP_200_OK)
 
     def patch(self, request):
         user = request.user
         if not request.data:
             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
+    
         try:
             user_profile = UserProfile.objects.get(user=user)
             print('user profile found')
@@ -239,8 +243,79 @@ class UserHomeView(APIView):
         else:
             return Response(serialized_data.errors)
 
+class ExperienceApiView(APIView):
+    permission_classes = [IsAuthenticated,IsSeeker]
 
+    def get(self,request):
+        try:
+            
+            userExperience = Experience.objects.filter(user = request.user)
+            if not userExperience:  
+                 return Response({'error': 'No experiences found'}, status=status.HTTP_404_NOT_FOUND)
+            serializer = ExperienceSerializer(userExperience,many = True)
+            return Response({
+                'data':serializer.data
+            },status=status.HTTP_200_OK)
 
+        except Experience.DoesNotExist:
+            return Response({'error':'not found'},status=status.HTTP_404_NOT_FOUND)
+    
+    def post(self,request):
+        if not request.data:
+            return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+          serializer = ExperienceSerializer(data=request.data, context={'request': request})
+          if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                userpofile = UserProfile.objects.get(user=request.user)
+                userpofile.experienced = True
+                userpofile.save()
+                return Response({
+                    'message':'Experience  added'
+                },status=status.HTTP_201_CREATED)
+          else:
+              return Response({'error':serializer.error},status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            
+             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    def patch(self,request,pk):
+        if not request.data:
+            return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            try:
+              experience = Experience.objects.get(id=pk)
+            except Experience.DoesNotExist:
+               return Response({
+                   'error':'not found'
+               },status=status.HTTP_404_NOT_FOUND)
+            
+            serializer = ExperienceSerializer(experience,data=request.data,partial = True)
+            if serializer.is_valid(raise_exception=True):
+                serializer.save()
+                return Response({
+                    'message':'updated succesfully',
+                    'data':serializer.data
+                },status=status.HTTP_200_OK)
+                
+
+        except Exception as e:
+             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def delete(self,request,pk):
+        try:
+            experience = Experience.objects.get(id=pk)
+        except Experience.DoesNotExist:
+            return Response({
+                   'error':'not found'
+               },status=status.HTTP_404_NOT_FOUND)
+        
+        experience.delete()
+        return Response({
+            'message':'succesfully removed'
+        },status=status.HTTP_200_OK)
 
 class ViewJobPosts(APIView):
     permission_classes = [IsAuthenticated]

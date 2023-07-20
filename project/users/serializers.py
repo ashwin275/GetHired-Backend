@@ -1,5 +1,5 @@
 from rest_framework import serializers,validators
-from .models import Account,UserProfile
+from .models import Account,UserProfile,Experience
 from employers.models import JobPost
 
 
@@ -48,18 +48,31 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class JobSeekerSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    
+    last_name = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    mobile = serializers.SerializerMethodField()
     class Meta:
         model = UserProfile
 
         fields = '__all__'
 
-
+    def get_user(self,obj):
+        return obj.user.first_name
+    def get_last_name (self,obj):
+        return obj.user.last_name
+    def get_email(self,obj):
+        return obj.user.email
+    
+    def get_mobile(self,obj):
+        return obj.user.mobile
     
     def update(self, instance, validated_data):
         profile = validated_data.pop('profile_picture',None)
         resume = validated_data.pop('resume',None)
         instance = super().update(instance, validated_data)
-
+        print('called for updation')
         if profile:
             instance.profile_picture = profile
 
@@ -69,6 +82,18 @@ class JobSeekerSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+class ExperienceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Experience
+        exclude = ['user']
+     
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        return super().update(instance, validated_data)
 
 class jobpostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -80,6 +105,7 @@ class JobListSerializer(serializers.ModelSerializer):
     company = serializers.SerializerMethodField()
     
     profile_picture = serializers.SerializerMethodField()
+    
 
     class Meta:
         model = JobPost

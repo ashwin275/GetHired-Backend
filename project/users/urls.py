@@ -19,7 +19,12 @@ urlpatterns = [
      path('seeker/view/',views.UserHomeView.as_view(),name='seeker-view'),
      
      path('view-jobs/',views.ViewJobPosts.as_view(),name="view-jobs"),
-     path('job-detail/<int:pk>/',views.ViewJobDetails.as_view(),name='job-detail')
+     path('job-detail/<int:pk>/',views.ViewJobDetails.as_view(),name='job-detail'),
+
+     path('get-experience/',views.ExperienceApiView.as_view(),name='get-experience'),
+     path('add-experience/',views.ExperienceApiView.as_view(),name='add-experience'),
+     path('update-expereience/<int:pk>/',views.ExperienceApiView.as_view(),name='update-experience'),
+     path('delete-expereince/<int:pk>/',views.ExperienceApiView.as_view(),name='delete-expereince')
 
 
 ]

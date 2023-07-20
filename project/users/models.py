@@ -82,10 +82,28 @@ class UserProfile(models.Model):
     qualification = models.CharField(max_length=30)
 
 
+    def get_completeness(self):
+        total_fields = 7  
+        completed_fields = sum(
+            field is not None and field != "" for field in [
+                self.profile_picture,
+                self.bio,
+                self.resume,
+                self.skills,
+                self.experienced,
+                self.desired_job,
+                self.desired_location,
+                self.qualification,
+            ]
+        )
+        completeness_percentage = (completed_fields / total_fields) * 100
+        return completeness_percentage
+
+
 class Experience(models.Model):
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
     designation = models.CharField(max_length=30)
     company = models.CharField(max_length=30)
-    start = models.IntegerField()
-    end = models.IntegerField()
+    start = models.CharField()
+    end = models.CharField()
     description = models.TextField()
