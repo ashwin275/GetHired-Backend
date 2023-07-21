@@ -67,6 +67,18 @@ class PostDetailSerializer(serializers.ModelSerializer):
 
 
 class JobApplicationSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    mobile = serializers.SerializerMethodField()
+    resume = serializers.FileField(source='user.resume')
     class Meta:
         model = JobApplication
-        fields = "__all__"
+        exclude = ['recruiter','job','modified']
+
+    def get_user(self,obj):
+        return obj.user.user.email
+    
+    def get_mobile(self,obj):
+        return obj.user.user.mobile
+    
+    def get_resume(self,obj):
+        return obj.user.resume

@@ -441,11 +441,13 @@ class jobApplyApiView(APIView):
     def delete(self,request,pk):
            try:
                jobapplication = JobApplication.objects.get(id = pk)
-
+               jobpost = JobPost.objects.get(id=jobapplication.job.id)
                if request.user == jobapplication.user.user:
                    jobapplication.delete()
+                   jobpost.applicants -=1
+                   jobpost.save()
                    return Response({
-                       'message':'Application declined'
+                       'message':'Application canceled'
                    },status=status.HTTP_200_OK)
                else:
                    return Response({
@@ -463,7 +465,7 @@ class AppliedJobsApiView(APIView):
     def get(self,request):
         try:
             userProfile_obj = UserProfile.objects.get(user=request.user)
-            applications = JobApplication.objects.filter(user = userProfile_obj)
+            applications = JobApplication.objects.filter(user = userProfile_obj).order_by('-created')
 
             serializer = JobApplicationSerializers(applications,many=True)
             

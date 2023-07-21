@@ -1,14 +1,15 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializer import EmployerInfoSerializer, EmployerEditSerializer, AddPostSerializer, PostsSerializers, PostDetailSerializer
+from .serializer import EmployerInfoSerializer, EmployerEditSerializer, AddPostSerializer, PostsSerializers, PostDetailSerializer, JobApplicationSerializer
 from rest_framework.permissions import IsAuthenticated
-from .models import RecruitersProfile, JobPost,Payment
+from .models import RecruitersProfile, JobPost, Payment, JobApplication
 
 from django.views.decorators.csrf import csrf_exempt
 from adminhome.serializers import PostPlanSerializer
 from adminhome.models import PostPlans
 from rest_framework.exceptions import APIException
+from rest_framework.pagination import LimitOffsetPagination
 from users.permission import IsRecruiters
 # Create your views here.
 
@@ -22,7 +23,7 @@ class EmployersHomeView(APIView):
         try:
             Recruiter_profile = RecruitersProfile.objects.get(user=user)
             print('recruiter profile found')
-        except :
+        except:
             Recruiter_profile = RecruitersProfile.objects.create(user=user)
             print('profile created')
 
@@ -133,55 +134,142 @@ class BuyPostPlanview(APIView):
     permission_classes = [IsAuthenticated, IsRecruiters]
 
     def get(self, request):
-        
+
         try:
             post = PostPlans.objects.all()
             serializer = PostPlanSerializer(post, many=True)
             return Response({'data': serializer.data})
         except APIException as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 
-    def post(self,request):
+    def post(self, request):
         if not request.data:
-            return Response({'error': 'No data provided.'}, 
+            return Response({'error': 'No data provided.'},
                             status=status.HTTP_400_BAD_REQUEST)
         plan_id = request.data.get('plan_id')
         order_id = request.data.get('order_id')
 
         amount = request.data.get('amount')
-        
+
         try:
-            post = PostPlans.objects.get(id = plan_id)
+            post = PostPlans.objects.get(id=plan_id)
             if amount:
-                print(amount,post.amount)
+                print(amount, post.amount)
                 if float(amount) != float(post.amount):
                     return Response({
-                        'error':'amount doesnot match'
-                    },status=status.HTTP_400_BAD_REQUEST)
+                        'error': 'amount doesnot match'
+                    }, status=status.HTTP_400_BAD_REQUEST)
             else:
                 return Response({
-                    'error':'provide amount'
-                },status=status.HTTP_400_BAD_REQUEST)
+                    'error': 'provide amount'
+                }, status=status.HTTP_400_BAD_REQUEST)
         except PostPlans.DoesNotExist:
             return Response({
-                'error':'PostPlan doesnot exist'
-            },status=status.HTTP_404_NOT_FOUND)
+                'error': 'PostPlan doesnot exist'
+            }, status=status.HTTP_404_NOT_FOUND)
         try:
-           payment = Payment.objects.create(
-               user = request.user,
-               amount = post.amount,
-               is_paid = True,
-               order_payment_id = order_id
-           )
-           payment.save()
-           user_account = RecruitersProfile.objects.get(user= request.user)
-           user_account.post_balance += post.no_of_count
-           user_account.save()
-           return Response({
-               'message':'payment succes',
-               'post_balance':user_account.post_balance
-           },status=status.HTTP_200_OK)
+            payment = Payment.objects.create(
+                user=request.user,
+                amount=post.amount,
+                is_paid=True,
+                order_payment_id=order_id
+            )
+            payment.save()
+            user_account = RecruitersProfile.objects.get(user=request.user)
+            user_account.post_balance += post.no_of_count
+            user_account.save()
+            return Response({
+                'message': 'payment succes',
+                'post_balance': user_account.post_balance
+            }, status=status.HTTP_200_OK)
         except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                                                                  
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ApplicantsListApiView(APIView):
+    permission_classes = [IsAuthenticated, IsRecruiters]
+    pagination_class = LimitOffsetPagination
+
+    def get(self, request, pk=None):
+
+        try:
+
+            if not pk:
+                return Response({
+                    'error': 'provide a valid id'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                jobPost = JobPost.objects.get(id=pk)
+            except JobPost.DoesNotExist:
+                return Response({
+                    'error':  'JobPost not found'
+                }, status=status.HTTP_404_NOT_FOUND)
+            applicants = JobApplication.objects.filter(job=jobPost.id).order_by('-id')
+            paginator = self.pagination_class()
+            paginated_applicants = paginator.paginate_queryset(
+                applicants, request)
+            serializer = JobApplicationSerializer(
+                paginated_applicants, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def patch(self, request, pk):
+        try:
+
+            try:
+
+                application = JobApplication.objects.get(id=pk)
+
+            except JobApplication.DoesNotExist:
+                return Response({
+                    'error': 'job application doesnot found'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            match application.status:
+                case 'applied':
+                    application.status = 'shortlisted'
+                case 'shortlisted':
+                    application.status = 'intervied'
+                    
+                case 'intervied':
+                    application.status = 'selected'
+                    job = JobPost.objects.get(id=application.job.id)
+                    job.hired_count +=1
+                    job.save()
+
+            application.save()
+            return Response({'message': 'succes'}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RejectApplicationApiView(APIView):
+    permission_classes = [IsAuthenticated,IsRecruiters]
+
+    def patch(self,request,pk):
+        try:
+
+            try:
+
+                application = JobApplication.objects.get(id=pk)
+
+            except JobApplication.DoesNotExist:
+                return Response({
+                    'error': 'job application doesnot found'
+                }, status=status.HTTP_404_NOT_FOUND)
+         
+            application.status = 'rejected'
+            application.save()
+            return Response({
+                'message':'succesfully rejected'
+            },status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'error':str(e)
+            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)

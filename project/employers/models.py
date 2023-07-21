@@ -6,6 +6,7 @@ status_Choice =(
     ('applied','applied'),
      ('intervied','intervied'),
     ('shortlisted','shortlisted'),
+     ('selected','selected'),
     ('rejected','rejected')
 
 )

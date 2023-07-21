@@ -16,6 +16,11 @@ urlpatterns = [
     path('post-plans/', views.BuyPostPlanview.as_view(), name='post-plans'),
     path('buy-plan/',views.BuyPostPlanview.as_view(),name='buy-plan'),
 
+
+    path('applicants/<int:pk>/',views.ApplicantsListApiView.as_view(),name='applicants'),
+    path('change-status/<int:pk>/',views.ApplicantsListApiView.as_view(),name='change-status'),
+    path('reject-application/<int:pk>/',views.RejectApplicationApiView.as_view(),name='reject-application')
+
 ]
 
 

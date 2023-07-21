@@ -153,7 +153,7 @@ class JobApplicationSerializers(serializers.ModelSerializer):
     job = serializers.SerializerMethodField()
    
     location = serializers.SerializerMethodField()
-    
+    # profile_picture = serializers.SerializerMethodField()
     recruiter = serializers.SerializerMethodField()
     class Meta:
         model = JobApplication
@@ -165,7 +165,9 @@ class JobApplicationSerializers(serializers.ModelSerializer):
     def get_job(self, obj):
         return obj.job.desgination 
     
-   
+    # def get_profile_picture(self,obj):
+    #     return obj.recruiter.profile_picture
+
     
     def get_location(self,obj):
         return obj.job.location
