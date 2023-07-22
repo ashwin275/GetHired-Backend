@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from .models import Account
-from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer, JobListSerializer, JobDetailSerialzer, ExperienceSerializer,JobApplicationSerializers
+from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer, JobListSerializer, JobDetailSerialzer, ExperienceSerializer, JobApplicationSerializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
@@ -21,6 +21,8 @@ from .permission import IsSeeker
 from employers.models import JobPost
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.exceptions import APIException
+from django.db.models import Q
+
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer # type: ignore
 # from rest_framework_simplejwt.views import TokenObtainPairView            # type: ignore
 # class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -363,7 +365,11 @@ class ViewJobPosts(APIView):
 
     def get(self, request):
         try:
-            jobs = JobPost.objects.all().order_by('-id')
+            userProfile = UserProfile.objects.get(user = request.user)
+            desired_job = userProfile.desired_job [:3]
+        
+            jobs = JobPost.objects.filter(Q(desgination__icontains=userProfile.desired_job)|Q(desgination__icontains = desired_job ) ).order_by('-id')
+            print(jobs)
             paginator = self.pagination_class()
             paginated_jobs = paginator.paginate_queryset(jobs, request)
             serializer = JobListSerializer(paginated_jobs, many=True)
@@ -374,10 +380,55 @@ class ViewJobPosts(APIView):
             raise APIException('Error retrieving job posts: {}'.format(str(e)))
 
 
+class SearchJobPostApiView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+
+          
+
+            search_query_company = request.GET.get('company')
+            search_query_job = request.GET.get('job')
+            search_query_skills = request.GET.get('skills')
+            search_query_location = request.GET.get('location')
+
+            if not (search_query_company or search_query_job or search_query_skills or search_query_location):
+                return Response({'error': 'Provide at least one valid search query.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            filters = Q()
+
+            if search_query_company:
+                filters &=  Q(company__company_name__icontains=search_query_company) 
+
+            if search_query_job:
+                filters &= Q(desgination__icontains=search_query_job)
+            
+            if search_query_skills:
+                filters &= Q(skills__icontains=search_query_skills)
+            
+            if search_query_location :
+                filters &= Q(location__icontains = search_query_location )
+
+           
+            print(filters)
+
+            jobs = JobPost.objects.filter(filters).order_by('-id')
+            serializer = JobListSerializer(jobs, many=True)
+            return Response({
+                'data': serializer.data
+            })
+
+        except Exception as e:
+            raise APIException('Error retrieving job posts: {}'.format(str(e)))
+
+
 class ViewJobDetails(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
+        
 
         try:
             try:
@@ -394,7 +445,7 @@ class ViewJobDetails(APIView):
 
 
 class jobApplyApiView(APIView):
-    permission_classes = [IsAuthenticated,IsSeeker]
+    permission_classes = [IsAuthenticated, IsSeeker]
 
     def post(self, request, pk):
         try:
@@ -426,7 +477,7 @@ class jobApplyApiView(APIView):
             )
 
             job_application.save()
-            Job.applicants+=1
+            Job.applicants += 1
             Job.save()
             return Response({
                 'message': 'Succesfully Applied'
@@ -436,43 +487,43 @@ class jobApplyApiView(APIView):
             return Response({
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 
-    def delete(self,request,pk):
-           try:
-               jobapplication = JobApplication.objects.get(id = pk)
-               jobpost = JobPost.objects.get(id=jobapplication.job.id)
-               if request.user == jobapplication.user.user:
-                   jobapplication.delete()
-                   jobpost.applicants -=1
-                   jobpost.save()
-                   return Response({
-                       'message':'Application canceled'
-                   },status=status.HTTP_200_OK)
-               else:
-                   return Response({
-                       'error':'no permision to perform this action'
-                   },status=status.HTTP_401_UNAUTHORIZED)
+    def delete(self, request, pk):
+        try:
+            jobapplication = JobApplication.objects.get(id=pk)
+            jobpost = JobPost.objects.get(id=jobapplication.job.id)
+            if request.user == jobapplication.user.user:
+                jobapplication.delete()
+                jobpost.applicants -= 1
+                jobpost.save()
+                return Response({
+                    'message': 'Application canceled'
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'error': 'no permision to perform this action'
+                }, status=status.HTTP_401_UNAUTHORIZED)
 
-           except Exception as e:
-               return Response({
-                   'error':str(e)
-               },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class AppliedJobsApiView(APIView):
-    permission_classes = [IsAuthenticated,IsSeeker]
+    permission_classes = [IsAuthenticated, IsSeeker]
 
-    def get(self,request):
+    def get(self, request):
         try:
             userProfile_obj = UserProfile.objects.get(user=request.user)
-            applications = JobApplication.objects.filter(user = userProfile_obj).order_by('-created')
+            applications = JobApplication.objects.filter(
+                user=userProfile_obj).order_by('-created')
 
-            serializer = JobApplicationSerializers(applications,many=True)
-            
+            serializer = JobApplicationSerializers(applications, many=True)
 
             return Response({
-                'payload':serializer.data,
-                'message':'succes'
-            },status=status.HTTP_200_OK)
+                'payload': serializer.data,
+                'message': 'succes'
+            }, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'error':str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

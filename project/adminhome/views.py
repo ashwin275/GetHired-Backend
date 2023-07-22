@@ -1,7 +1,8 @@
 from rest_framework.views import APIView
 from users.models import Account
 from .models import PostPlans
-from users.serializers import UserInfoSerializer,UserSerializer
+from employers.models import Payment
+from users.serializers import UserInfoSerializer, UserSerializer
 from .serializers import PostPlanSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
@@ -11,21 +12,38 @@ from rest_framework_simplejwt.authentication import JWTAuthentication  # type: i
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.exceptions import ValidationError
-from rest_framework.exceptions import APIException ,NotFound
+from rest_framework.exceptions import APIException, NotFound
+from django.db.models import Sum
+from django.http import JsonResponse
+from django.utils.timezone import now
 # Create your views here.
 
+
 class AdminHomeview(APIView):
-     permission_classes = [IsAuthenticated]
-     def get(self,request):
-         user = request.user
-         print(user,'ooooooooooooooooooooo')
-         if not user.is_superuser:
-             return Response({'detail':'You are not an admin'},status=status.HTTP_403_FORBIDDEN)
-         
-         serialized_data = UserInfoSerializer(user)
-         return Response(serialized_data.data)
-    
-    
+    permission_classes = [IsAuthenticated, IsSuperuser]
+
+    def get(self, request):
+        current_month = now().month
+        print(current_month)
+        user_count = Account.objects.filter(
+            is_superuser=True, is_verified=True).count()
+        recruiter_count = Account.objects.filter(
+            is_employer=True, is_verified=True).count()
+
+        total_amount = Payment.objects.filter(created_at__month=current_month).aggregate(total_amount=Sum('amount'))['total_amount']
+        print(total_amount, 'revenue got it')
+        
+
+        data = {
+            'user_count': user_count,
+            'recruiter_count': recruiter_count,
+            'revenue':total_amount
+           
+        }
+
+        return JsonResponse(data)
+
+
 class AdminViewUserManage(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, IsSuperuser]
@@ -41,7 +59,7 @@ class AdminViewUserManage(APIView):
         if not user.is_superuser:
             return Response({'detail': 'You are not an admin.'}, status=status.HTTP_403_FORBIDDEN)
 
-        users = Account.objects.filter(is_seeker = True)
+        users = Account.objects.filter(is_seeker=True)
         UserList = UserSerializer(users, many=True)
         return Response(UserList.data)
 
@@ -52,8 +70,8 @@ class AdminViewUserManage(APIView):
             return Response({'message': 'Account deleted successfully'})
         except Account.DoesNotExist:
             return Response({'message': 'Account not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-    def patch(self,request,pk):
+
+    def patch(self, request, pk):
         user = self.get_object(pk)
 
         if user.is_active:
@@ -63,13 +81,10 @@ class AdminViewUserManage(APIView):
         user.save()
         serializer = UserInfoSerializer(user)
         return Response({
-            'status' : 400,
-            'data':serializer.data
+            'status': 400,
+            'data': serializer.data
 
         })
-
-
-
 
 
 class AdminViewEmployerManage(APIView):
@@ -86,8 +101,6 @@ class AdminViewEmployerManage(APIView):
         return Response(UserList.data)
 
 
-
-
 class AddPostPlanView(APIView):
     permission_classes = [IsAuthenticated, IsSuperuser]
 
@@ -95,8 +108,6 @@ class AddPostPlanView(APIView):
         if not request.data:
             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
 
-        
-        
         serializer = PostPlanSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -105,23 +116,18 @@ class AddPostPlanView(APIView):
             'data': serializer.data,
             'message': 'New Plan created successfully',
         }, status=status.HTTP_201_CREATED)
-  
 
-
-    
-       
-        
-    def get(self,request,pk = None):
+    def get(self, request, pk=None):
 
         if pk is not None:
             try:
                 post = PostPlans.objects.get(id=pk)
 
                 serializer = PostPlanSerializer(post)
-                return Response({'data':serializer.data})
-            except APIException as e :
-                return Response({'detail':str(e)},status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+                return Response({'data': serializer.data})
+            except APIException as e:
+                return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         else:
             try:
                 post = PostPlans.objects.all().order_by('-id')
@@ -130,11 +136,9 @@ class AddPostPlanView(APIView):
             except APIException as e:
                 return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        
-
     def patch(self, request, pk):
         if not request.data:
-             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
         if not request.data:
             return Response({'detail': 'No data found'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -152,17 +156,14 @@ class AddPostPlanView(APIView):
 
         serializer.save()
 
-        return Response({'data': serializer.data,"message":' Updated succesfully'},status=status.HTTP_200_OK)
+        return Response({'data': serializer.data, "message": ' Updated succesfully'}, status=status.HTTP_200_OK)
 
-    def delete(self,request,pk):
+    def delete(self, request, pk):
         try:
             post = PostPlans.objects.get(id=pk)
             post.delete()
-            return Response({'message':"Plan has been deleted succesfully"},status=status.HTTP_200_OK)
+            return Response({'message': "Plan has been deleted succesfully"}, status=status.HTTP_200_OK)
         except PostPlans.DoesNotExist:
             raise NotFound("post plan not found")
         except APIException as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-

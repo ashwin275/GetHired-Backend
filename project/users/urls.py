@@ -30,7 +30,9 @@ urlpatterns = [
      path('job-apply/<int:pk>/',views.jobApplyApiView.as_view(),name='job-apply'),
      path('decline-apply/<int:pk>/',views.jobApplyApiView.as_view(),name='decline-job-apply'),
 
-     path('applied-jobs/',views.AppliedJobsApiView.as_view(),name='applied-jobs')
+     path('applied-jobs/',views.AppliedJobsApiView.as_view(),name='applied-jobs'),
+
+     path('search/',views.SearchJobPostApiView.as_view(),name='search')
 
 
 ]
