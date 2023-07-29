@@ -62,3 +62,4 @@ class JobApplication(models.Model):
     status = models.CharField(max_length=15,choices=status_Choice,default='applied')
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+    is_downloaded = models.BooleanField(default=False)

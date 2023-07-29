@@ -19,7 +19,9 @@ urlpatterns = [
 
     path('applicants/<int:pk>/',views.ApplicantsListApiView.as_view(),name='applicants'),
     path('change-status/<int:pk>/',views.ApplicantsListApiView.as_view(),name='change-status'),
-    path('reject-application/<int:pk>/',views.RejectApplicationApiView.as_view(),name='reject-application')
+    path('reject-application/<int:pk>/',views.RejectApplicationApiView.as_view(),name='reject-application'),
+
+    path('resume-downloaded/<int:pk>/',views.ResumeDownloadedApiView.as_view(),name='resume-downloaded')
 
 ]
 

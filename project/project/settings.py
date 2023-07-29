@@ -38,6 +38,7 @@ USE_TZ = True
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -50,7 +51,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'employers',
     'users',
-    'adminhome'
+    'adminhome',
+    'chat'
    
     
 ]
@@ -144,7 +146,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'project.wsgi.application'
-
+ASGI_APPLICATION = "project.asgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases

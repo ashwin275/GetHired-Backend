@@ -11,6 +11,7 @@ from adminhome.models import PostPlans
 from rest_framework.exceptions import APIException
 from rest_framework.pagination import LimitOffsetPagination
 from users.permission import IsRecruiters
+from users.sendmails import send_resume_downloaded
 # Create your views here.
 
 
@@ -269,6 +270,43 @@ class RejectApplicationApiView(APIView):
             return Response({
                 'message':'succesfully rejected'
             },status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'error':str(e)
+            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
+class ResumeDownloadedApiView(APIView):
+    permission_classes = [IsAuthenticated,IsRecruiters]
+
+    def post(self,request,pk):
+        print(pk)
+        try:
+            try:
+                application = JobApplication.objects.get(id=pk)
+            except JobApplication.DoesNotExist:
+                return Response({
+                    'error':'application doesnot exist'
+                },status=status.HTTP_404_NOT_FOUND)
+            if application.is_downloaded:
+                return Response({
+                    'message':'already viewed by employer'
+                })
+            user_email = application.user.user.email
+            application_designation = application.job.desgination
+            company = application.recruiter.company_name
+
+            send_resume_downloaded(user_email,company,application_designation)
+            application.is_downloaded = True
+            application.save()
+
+            return Response({
+                'message':'email succesfully send'
+            },status=status.HTTP_200_OK)
+
+
+
         except Exception as e:
             return Response({
                 'error':str(e)
