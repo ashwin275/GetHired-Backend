@@ -70,6 +70,8 @@ class JobApplicationSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     mobile = serializers.SerializerMethodField()
     resume = serializers.FileField(source='user.resume')
+    user_id = serializers.SerializerMethodField()
+    emp_id = serializers.SerializerMethodField()
     class Meta:
         model = JobApplication
         exclude = ['recruiter','job','modified']
@@ -82,3 +84,9 @@ class JobApplicationSerializer(serializers.ModelSerializer):
     
     def get_resume(self,obj):
         return obj.user.resume
+    
+    def get_user_id(self,obj):
+        return obj.user.user.id
+    
+    def get_emp_id(self,obj):
+        return obj.recruiter.user.id
