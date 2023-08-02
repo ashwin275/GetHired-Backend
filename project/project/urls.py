@@ -28,5 +28,6 @@ urlpatterns = [
      path('api/',include('users.urls')),
      path('api/admin/',include('adminhome.urls')),
      path('api/recruiters/',include('employers.urls')),
+     path('api/chats/',include('chat.urls'))
      
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -59,7 +59,7 @@ class RegisterView(APIView):
         response = Response()
         response.data = {
             'message': f"Account successfully created for {serializer.data['first_name']}",
-            'message_email': f"Email verification required ",
+            'message_email': f"Email verification required",
             'Userinfo': serializer.data
         }
         return response

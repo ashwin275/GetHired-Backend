@@ -151,19 +151,24 @@ class JobDetailSerialzer(serializers.ModelSerializer):
 
 class JobApplicationSerializers(serializers.ModelSerializer):
     job = serializers.SerializerMethodField()
-   
+    JobPostId = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     # profile_picture = serializers.SerializerMethodField()
     recruiter = serializers.SerializerMethodField()
+    Emp_ID = serializers.SerializerMethodField()
     class Meta:
         model = JobApplication
         exclude = ['user']
-
+    def get_JobPostId(self,obj):
+        return obj.job.id
     def get_recruiter(self,obj):
         return obj.recruiter.company_name
     
     def get_job(self, obj):
-        return obj.job.desgination 
+        return obj.job.desgination
+
+    def get_Emp_ID(self,obj):
+        return obj.recruiter.user.id
     
     # def get_profile_picture(self,obj):
     #     return obj.recruiter.profile_picture
