@@ -11,7 +11,7 @@ from adminhome.models import PostPlans
 from rest_framework.exceptions import APIException
 from rest_framework.pagination import LimitOffsetPagination
 from users.permission import IsRecruiters
-from users.sendmails import send_resume_downloaded
+from users.sendmails import send_employer_action_mail
 # Create your views here.
 
 
@@ -232,6 +232,13 @@ class ApplicantsListApiView(APIView):
             match application.status:
                 case 'applied':
                     application.status = 'shortlisted'
+                    user_email = application.user.user.email
+                    application_designation = application.job.desgination
+                    company = application.recruiter.company_name
+                   
+                    message = f'Congratulations! We are excited to inform you that your job application for {application_designation} has been shortlisted by  {company}. Your qualifications and experience have impressed them, and you are one step closer to the next stages of the selection process. Keep up the good work and prepare yourself for the upcoming rounds. Thank you for choosing our platform, and we wish you the best of luck in the further evaluation!'
+                    subject = 'Get-Hired Application Shortlisted'
+                    send_employer_action_mail(user_email,message,subject)
                 case 'shortlisted':
                     application.status = 'intervied'
                     
@@ -267,6 +274,16 @@ class RejectApplicationApiView(APIView):
          
             application.status = 'rejected'
             application.save()
+            subject = 'Get-Hired Application rejected'
+            user_email = application.user.user.email
+            application_designation = application.job.desgination
+            company = application.recruiter.company_name
+                   
+           
+            message = f'We regret to inform you that your job application  for {application_designation}has been rejected by {company}. We appreciate your interest and effort in applying for the position. Please dont be discouraged, as there are many other opportunities out there. Keep refining your skills and exploring new possibilities. Thank you for choosing our platform, and we wish you success in your job search!'
+            print('called function')
+            hello = send_employer_action_mail(user_email,message,subject)
+            print('return',hello)
             return Response({
                 'message':'succesfully rejected'
             },status=status.HTTP_200_OK)
@@ -296,8 +313,9 @@ class ResumeDownloadedApiView(APIView):
             user_email = application.user.user.email
             application_designation = application.job.desgination
             company = application.recruiter.company_name
-
-            send_resume_downloaded(user_email,company,application_designation)
+            subject = 'Get-Hired resume downloaded'
+            message = f'Congratulations! We are thrilled to inform you that your resume has been downloaded by {company} for the application to the position of {application_designation}. This is an exciting opportunity, and we wish you the best of luck in the selection process. We believe your skills and experience make you a strong candidate, and we look forward to seeing your continued success. Should you have any questions or require further information, please dont hesitate to reach out. Thank you for choosing our platform, and we hope this leads you to your dream job!'
+            send_employer_action_mail(user_email,message,subject)
             application.is_downloaded = True
             application.save()
 

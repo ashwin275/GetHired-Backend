@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from .models import Account
-from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer, JobListSerializer, JobDetailSerialzer, ExperienceSerializer, JobApplicationSerializers
+from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer, JobListSerializer, JobDetailSerialzer, ExperienceSerializer, JobApplicationSerializers,JobApplicationChatSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework import status
@@ -289,7 +289,7 @@ class ExperienceApiView(APIView):
     def get(self, request):
         try:
 
-            userExperience = Experience.objects.filter(user=request.user)
+            userExperience = Experience.objects.filter(user=request.user).order_by('start')
             if not userExperience:
                 return Response({'error': 'No experiences found'}, status=status.HTTP_404_NOT_FOUND)
             serializer = ExperienceSerializer(userExperience, many=True)
@@ -306,7 +306,7 @@ class ExperienceApiView(APIView):
         try:
             serializer = ExperienceSerializer(
                 data=request.data, context={'request': request})
-            if serializer.is_valid(raise_exception=True):
+            if serializer.is_valid():
                 serializer.save()
                 userpofile = UserProfile.objects.get(user=request.user)
                 userpofile.experienced = True
@@ -315,7 +315,8 @@ class ExperienceApiView(APIView):
                     'message': 'Experience  added'
                 }, status=status.HTTP_201_CREATED)
             else:
-                return Response({'error': serializer.error}, status=status.HTTP_400_BAD_REQUEST)
+         
+                return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
 
@@ -429,18 +430,31 @@ class ViewJobDetails(APIView):
 
     def get(self, request, pk):
         
-
+        print('called for job id:',pk)
         try:
             try:
                 jobs = JobPost.objects.get(id=pk)
+               
             except:
                 return Response({'error': 'Job Not found'}, status=status.HTTP_404_NOT_FOUND)
+            try:
+                userProfile = UserProfile.objects.get(user=request.user)
+                recruiters = RecruitersProfile.objects.get(user=jobs.company.user)
+                
+            except Exception as e:
+                
+                 raise APIException('Error retrieving  profiles: {}'.format(str(e)))
+            print(userProfile.id,recruiters.id,pk)
+            jobappied = JobApplication.objects.filter(user=userProfile, job=jobs, recruiter=recruiters).exists()
+            applied = jobappied
+            
+            
+            serializer = JobDetailSerialzer(jobs)
 
-            serializer = JobDetailSerialzer(jobs,)
-
-            return Response({'data': serializer.data}, status=status.HTTP_200_OK)
+            return Response({'data': serializer.data,'applied':applied}, status=status.HTTP_200_OK)
 
         except Exception as e:
+            print('second error')
             raise APIException('Error retrieving job posts: {}'.format(str(e)))
 
 
@@ -523,6 +537,25 @@ class AppliedJobsApiView(APIView):
 
             return Response({
                 'payload': serializer.data,
+                'message': 'succes'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class ChatAppliedJobsAPiView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+        print('called for job chats')
+        try:
+           userProfile_obj = UserProfile.objects.get(user=request.user)
+           applications = JobApplication.objects.filter(
+                   Q(user=userProfile_obj) & ~(Q(status='applied') | Q(status='rejected'))
+                     ).order_by('-created')
+           seializer = JobApplicationChatSerializer(applications,many=True)
+           return Response({
+                'payload': seializer.data,
                 'message': 'succes'
             }, status=status.HTTP_200_OK)
         except Exception as e:

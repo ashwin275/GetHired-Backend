@@ -31,7 +31,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         instance.save()
 
         return instance
-    
+
 
 
 
@@ -97,7 +97,29 @@ class ExperienceSerializer(serializers.ModelSerializer):
     
     def update(self, instance, validated_data):
         return super().update(instance, validated_data)
+    
+    def validate(self, data):
+        start = data['start']
+        end = data['end']
 
+        if start >= end:
+            raise serializers.ValidationError("Start date must be before the end date.")
+        
+        user = self.context['request'].user
+        overlapping_experiences = Experience.objects.filter(
+            user=user,
+            start__lt=end,
+            end__gt=start,
+        )
+
+        if self.instance:
+            
+            overlapping_experiences = overlapping_experiences.exclude(pk=self.instance.pk)
+
+        if overlapping_experiences.exists():
+            raise serializers.ValidationError("Cannot add another experience with overlapping dates. Choose another dates")
+
+        return data
 class jobpostSerializer(serializers.ModelSerializer):
     class Meta:
         model = JobPost
@@ -179,3 +201,27 @@ class JobApplicationSerializers(serializers.ModelSerializer):
     
     # def get_company_name(self,obj):
     #     return obj.recruiter.company_name
+
+
+class JobApplicationChatSerializer(serializers.ModelSerializer):
+    job = serializers.SerializerMethodField()
+    job_id = serializers.SerializerMethodField()
+    recruiter = serializers.SerializerMethodField()
+    emp_id = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = JobApplication
+        exclude = ['user','created','status','modified','is_downloaded']
+
+
+    def get_job(self, obj):
+        return obj.job.desgination
+    def get_recruiter(self,obj):
+        return obj.recruiter.company_name
+    
+    def get_job_id(self,obj):
+        return obj.job.id
+    def get_emp_id (self,obj):
+        return obj.recruiter.user.id
+    
+   

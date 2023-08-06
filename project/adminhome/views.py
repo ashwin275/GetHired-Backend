@@ -33,7 +33,8 @@ class AdminHomeview(APIView):
         total_amount = Payment.objects.filter(created_at__month=current_month).aggregate(total_amount=Sum('amount'))['total_amount']
         print(total_amount, 'revenue got it')
         
-
+        if not total_amount:
+            total_amount = 0
         data = {
             'user_count': user_count,
             'recruiter_count': recruiter_count,

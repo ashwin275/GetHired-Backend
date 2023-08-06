@@ -105,6 +105,8 @@ class Experience(models.Model):
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
     designation = models.CharField(max_length=30)
     company = models.CharField(max_length=30)
-    start = models.CharField()
-    end = models.CharField()
+    start = models.DateField()
+    end = models.DateField()
     description = models.TextField()
+    certificate = models.FileField(upload_to='certificates/', null=True, blank=True)
+    
