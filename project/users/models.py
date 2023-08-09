@@ -72,9 +72,9 @@ class Account(AbstractBaseUser):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(Account, on_delete=models.CASCADE)
-    profile_picture = models.ImageField(blank=True)
+    profile_picture = models.ImageField(upload_to='profiles/',blank=True)
     bio = models.TextField(max_length=500, blank=True, null=True)
-    resume = models.FileField(blank=True, null=True)
+    resume = models.FileField(upload_to='resumes/',blank=True, null=True)
     skills = models.CharField(max_length=40, blank=True, null=True)
     experienced = models.BooleanField(default=False)
     desired_job = models.CharField(max_length=30)
