@@ -1,5 +1,7 @@
 from rest_framework.views import APIView
 from .models import Account
+from django.http import HttpResponse
+import datetime
 from .serializers import RegisterSerializer, UserInfoSerializer, UserSerializer, JobSeekerSerializer, jobpostSerializer, JobListSerializer, JobDetailSerialzer, ExperienceSerializer, JobApplicationSerializers,JobApplicationChatSerializer
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
@@ -38,6 +40,55 @@ from django.db.models import Q
 
 # class MyTokenObtainPairView(TokenObtainPairView):
 #     serializer_class = MyTokenObtainPairSerializer
+
+
+
+
+def GetHiredApiBackend(request):
+    now = datetime.datetime.now()
+    formatted_time = now.strftime("%I:%M %p")  # Format time as "hh:mm AM/PM"
+    html = """
+    <html>
+    <head>
+    <style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f5f5f5;
+        font-family: Arial, sans-serif;
+    }
+    .container {
+        text-align: center;
+        padding: 20px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+    p {
+        font-size: 18px;
+        color: #666666;
+    }
+    </style>
+    </head>
+    <body>
+    <div class="container">
+        <h1>Welcome to GetHired API Playground</h1>
+        <p>Unleash the power of data-driven hiring solutions.<br>Discover, create, and innovate with our backend API.</p>
+        <p>Time: %s<br>Date: %s</p>
+    </div>
+    </body>
+    </html>
+    """ % (formatted_time, now)
+    return HttpResponse(html)
+
+
 
 
 class RegisterView(APIView):
