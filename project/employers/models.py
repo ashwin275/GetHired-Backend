@@ -12,7 +12,7 @@ status_Choice =(
 )
 class RecruitersProfile(models.Model):
     user = models.OneToOneField(Account,on_delete=models.CASCADE)
-    profile_picture = models.ImageField(blank=True,null=True,default=None)
+    profile_picture = models.ImageField(upload_to='profiles/',blank=True,null=True,default=None)
     recruiter_bio = models.TextField(max_length=255,blank=True)
     location = models.CharField(max_length=40)
     company_name = models.CharField(max_length=40)
