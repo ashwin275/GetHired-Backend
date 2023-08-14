@@ -26,7 +26,7 @@ class AdminHomeview(APIView):
         current_month = now().month
         print(current_month)
         user_count = Account.objects.filter(
-            is_superuser=True, is_verified=True).count()
+            is_seeker=True, is_verified=True).count()
         recruiter_count = Account.objects.filter(
             is_employer=True, is_verified=True).count()
 

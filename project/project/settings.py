@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-!m9s6h+ffidv2y!zm%%synrh4xldby_xjyfhg_35+7(@8gm5-k
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['ebikesforu.shop','www.ebikesforu.shop','54.152.9.233','localhost']
+ALLOWED_HOSTS = ['ebikesforu.shop','www.ebikesforu.shop','54.152.9.233','localhost','127.0.0.1']
 
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
@@ -161,27 +161,27 @@ CHANNEL_LAYERS = {
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # local
-# DATABASES = {
-#     'default': {
-#          'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'gethired',
-#         'USER':'postgres',
-#         'PASSWORD':'ashwin@2001',
-#         'HOST':'localhost'
-#     }
-# }
-
-
-# production
 DATABASES = {
     'default': {
-         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'gethired',
-        'USER':'ashwin',
-        'PASSWORD':'ashiwn@2001',
+        'USER':'postgres',
+        'PASSWORD':'ashwin@2001',
         'HOST':'localhost'
     }
 }
+
+
+# production
+# DATABASES = {
+#     'default': {
+#          'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'gethired',
+#         'USER':'ashwin',
+#         'PASSWORD':'ashiwn@2001',
+#         'HOST':'localhost'
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
