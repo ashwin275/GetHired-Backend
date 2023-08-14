@@ -1,10 +1,11 @@
 from rest_framework.views import APIView
+from django.http import HttpResponse
 from rest_framework.response import Response
 from rest_framework import status
 from .serializer import EmployerInfoSerializer, EmployerEditSerializer, AddPostSerializer, PostsSerializers, PostDetailSerializer, JobApplicationSerializer
 from rest_framework.permissions import IsAuthenticated
 from .models import RecruitersProfile, JobPost, Payment, JobApplication
-
+from users.models import UserProfile,Account
 from django.views.decorators.csrf import csrf_exempt
 from adminhome.serializers import PostPlanSerializer
 from adminhome.models import PostPlans
@@ -329,3 +330,30 @@ class ResumeDownloadedApiView(APIView):
             return Response({
                 'error':str(e)
             },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
+
+class UserResumeDownloadApiView(APIView):
+    permission_classes =[IsAuthenticated,IsRecruiters]
+    def get(self, request, pk, format=None):
+        try:
+            try:
+               user = Account.objects.get(id=pk)
+            except Account.DoesNotExist:
+                return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            user_profile = UserProfile.objects.get(user=user)
+            print(user_profile)
+            if user_profile.resume:
+
+                resume_file = user_profile.resume.path
+                print('path',resume_file)
+                with open(resume_file, 'rb') as resume:
+                    response = HttpResponse(resume.read(), content_type='application/pdf')
+                    response['Content-Disposition'] = f'attachment; filename="{user.email}_resume.pdf"'
+                    return response
+            else:
+                return Response({'detail': 'User has no resume'}, status=status.HTTP_404_NOT_FOUND)
+        except UserProfile.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
