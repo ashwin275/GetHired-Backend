@@ -1,6 +1,7 @@
 # GetHired-Backend
 
-This repository contains the backend codebase of GET-HIRED job portal app developed using Django, Django Rest Framework, simple jwt and other technologies.
+This repository contains the backend codebase of GET-HIRED job portal app developed using Django, Django Rest Framework, simple jwt and other technologies.You can find the frontend code in the [GetHired-
+frontend repository](https://github.com/ashwin275/GetHired-Frontend).
 
 
 ## Overview
